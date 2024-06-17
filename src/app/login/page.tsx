@@ -14,7 +14,7 @@ import { loginSchema } from '@/schemas/login.schema'
 import { useMutation } from '@tanstack/react-query'
 import { ServerError } from '@/api/utils'
 import { Tokens } from '@/api/models/Tokens.model'
-import { ResponseError } from '@/api/utils'
+import Cookies from 'js-cookie'
 
 type FormData = {
   username: string
@@ -54,7 +54,9 @@ const page = () => {
       const response = await authApi.login(data.username, data.password)
       return response.payload
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      Cookies.set('accessToken', data.accessToken, { expires: 0.5 }) // Expires in 12 hours
+      Cookies.set('refreshToken', data.refreshToken, { expires: 7 })
       toast.success('Sign In Successful')
     },
     onSettled: () => {
