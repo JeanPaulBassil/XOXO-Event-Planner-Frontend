@@ -1,4 +1,4 @@
-import { ApiResponse, ServerError, ResponseError } from '.'
+import { ApiResponse, ResponseError, ServerError } from '.'
 
 export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3200/'
 
