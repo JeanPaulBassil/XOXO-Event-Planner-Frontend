@@ -16,6 +16,7 @@ import { ServerError } from '@/api/utils'
 import { Tokens } from '@/api/models/Tokens.model'
 import Cookies from 'js-cookie'
 import { useRouter } from 'next/navigation'
+import { setTokens } from '@/utils/auth'
 
 type FormData = {
   username: string
@@ -57,14 +58,7 @@ const page = () => {
       return response.payload
     },
     onSuccess: (data) => {
-      Cookies.set('accessToken', data.accessToken, { expires: 0.5 }) // Expires in 12 hours
-      Cookies.set('refreshToken', data.refreshToken, { expires: 7 })
-    },
-    onSettled: () => {
-      reset({
-        username: '',
-        password: '',
-      })
+      setTokens(data.accessToken, data.refreshToken)
       router.push('/')
       toast.success('Sign In Successful')
     },
