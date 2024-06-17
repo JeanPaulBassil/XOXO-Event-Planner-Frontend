@@ -15,6 +15,7 @@ import { useMutation } from '@tanstack/react-query'
 import { ServerError } from '@/api/utils'
 import { Tokens } from '@/api/models/Tokens.model'
 import Cookies from 'js-cookie'
+import { useRouter } from 'next/navigation'
 
 type FormData = {
   username: string
@@ -24,6 +25,7 @@ type FormData = {
 const page = () => {
   const [isVisible, setIsVisible] = useState(false)
   const authApi = new AuthApi()
+  const router = useRouter()
 
   const toggleVisibility = () => setIsVisible(!isVisible)
 
@@ -57,14 +59,14 @@ const page = () => {
     onSuccess: (data) => {
       Cookies.set('accessToken', data.accessToken, { expires: 0.5 }) // Expires in 12 hours
       Cookies.set('refreshToken', data.refreshToken, { expires: 7 })
-      toast.success('Sign In Successful')
     },
     onSettled: () => {
       reset({
         username: '',
         password: '',
       })
-      // navigate to dashboard
+      router.push('/')
+      toast.success('Sign In Successful')
     },
   })
 
