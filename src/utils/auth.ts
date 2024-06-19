@@ -2,8 +2,9 @@ import { AuthApi } from '@/api/auth.api'
 import { ServerError } from '@/api/utils'
 import Cookies from 'js-cookie'
 
-export const setTokens = (accessToken: string, refreshToken: string) => {
+export const setTokens = (accessToken: string, refreshToken: string, rememberMe = false) => {
   Cookies.set('accessToken', accessToken, { expires: 0.5 })
+  if (!rememberMe) return
   Cookies.set('refreshToken', refreshToken, { expires: 7 })
 }
 
