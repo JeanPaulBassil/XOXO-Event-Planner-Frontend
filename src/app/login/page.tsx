@@ -2,13 +2,12 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import { Input } from '@nextui-org/input'
-import Icon from '../components/Icon'
+import Icon from '../_components/Icon'
 import { Checkbox } from '@nextui-org/checkbox'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import { AuthApi } from '@/api/auth.api'
-import { Resolver } from 'dns'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { joiResolver } from '@hookform/resolvers/joi'
 import { loginSchema } from '@/schemas/login.schema'
 import { useMutation } from '@tanstack/react-query'
@@ -21,6 +20,7 @@ import { setTokens } from '@/utils/auth'
 type FormData = {
   username: string
   password: string
+  rememberMe: boolean
 }
 
 const page = () => {
@@ -32,11 +32,8 @@ const page = () => {
 
   const {
     handleSubmit,
-    reset,
     register,
     control,
-    setValue,
-    resetField,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<FormData>({
     resolver: joiResolver(loginSchema, {
@@ -49,16 +46,29 @@ const page = () => {
     defaultValues: {
       username: '',
       password: '',
+      rememberMe: false,
     },
   })
 
-  const { mutateAsync } = useMutation<Tokens, ServerError, FormData>({
+  const { mutateAsync } = useMutation<
+    {
+      accessToken: string
+      refreshToken: string
+      rememberMe: boolean
+    },
+    ServerError,
+    FormData
+  >({
     mutationFn: async (data) => {
       const response = await authApi.login(data.username, data.password)
-      return response.payload
+      return {
+        accessToken: response.payload.accessToken,
+        refreshToken: response.payload.refreshToken,
+        rememberMe: data.rememberMe,
+      }
     },
     onSuccess: (data) => {
-      setTokens(data.accessToken, data.refreshToken)
+      setTokens(data.accessToken, data.refreshToken, data.rememberMe)
       router.push('/')
       toast.success('Sign In Successful')
     },
@@ -96,15 +106,18 @@ const page = () => {
               classNames={{
                 input: 'bg-light-50 lg:bg-light-100',
               }}
+              isInvalid={!!errors.username}
+              errorMessage={errors.username?.message}
               isClearable
               className="mt-4"
               {...register('username')}
             />
-            {errors.username && <p className="text-red-500">{errors.username.message}</p>}
             <Input
               label="Password"
               variant="underlined"
               readOnly={isSubmitting}
+              isInvalid={!!errors.password}
+              errorMessage={errors.password?.message}
               endContent={
                 <button className="focus:outline-none" type="button" onClick={toggleVisibility}>
                   {isVisible ? <Icon name="hidden" /> : <Icon name="eye" />}
@@ -117,10 +130,24 @@ const page = () => {
               className="mt-4"
               {...register('password')}
             />
-            {errors.password && <p className="text-red-500">{errors.password.message}</p>}
-            <Checkbox color="danger" size="sm" className="mt-4 self-start">
-              Keep Me Signed In
-            </Checkbox>
+            <Controller
+              control={control}
+              name="rememberMe"
+              render={({ field: { onChange, value } }) => {
+                return (
+                  <Checkbox
+                    defaultSelected
+                    onValueChange={onChange}
+                    isSelected={value}
+                    size="sm"
+                    color="danger"
+                    className="mt-4"
+                  >
+                    Remember me
+                  </Checkbox>
+                )
+              }}
+            />
             <button
               type="submit"
               className="mt-4 w-full rounded-md bg-light-500 py-3 text-base font-bold text-light-50"
