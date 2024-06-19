@@ -21,6 +21,7 @@ import { setTokens } from '@/utils/auth'
 type FormData = {
   username: string
   password: string
+  rememberMe: boolean
 }
 
 const page = () => {
@@ -49,16 +50,30 @@ const page = () => {
     defaultValues: {
       username: '',
       password: '',
+      rememberMe: false,
     },
   })
 
-  const { mutateAsync } = useMutation<Tokens, ServerError, FormData>({
+  const { mutateAsync } = useMutation<
+    {
+      accessToken: string
+      refreshToken: string
+      rememberMe: boolean
+    },
+    ServerError,
+    FormData
+  >({
     mutationFn: async (data) => {
       const response = await authApi.login(data.username, data.password)
-      return response.payload
+      return {
+        ...response.payload,
+        rememberMe: data.rememberMe,
+      }
     },
-    onSuccess: (data) => {
-      setTokens(data.accessToken, data.refreshToken)
+    onSuccess: (data: { accessToken: string; refreshToken: string; rememberMe: boolean }) => {
+      if (data.rememberMe) {
+        setTokens(data.accessToken, data.refreshToken)
+      }
       router.push('/')
       toast.success('Sign In Successful')
     },
@@ -118,7 +133,12 @@ const page = () => {
               {...register('password')}
             />
             {errors.password && <p className="text-red-500">{errors.password.message}</p>}
-            <Checkbox color="danger" size="sm" className="mt-4 self-start">
+            <Checkbox
+              color="danger"
+              size="sm"
+              className="mt-4 self-start"
+              {...register('rememberMe')}
+            >
               Keep Me Signed In
             </Checkbox>
             <button
