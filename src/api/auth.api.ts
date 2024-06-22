@@ -34,20 +34,4 @@ export class AuthApi extends AbstractApi<User | Tokens> {
 
     return response
   }
-
-  async refreshTokens(refreshToken: string): Promise<ApiResponse<Tokens>> {
-    const response: ApiResponse<Tokens> = (await this.doFetch({
-      requestOptions: {
-        method: 'POST',
-        body: JSON.stringify({ refreshToken }),
-      },
-      pathExtension: 'refresh',
-    })) as ApiResponse<Tokens>
-
-    if (!response.payload) {
-      throw new Error('Token refresh failed')
-    }
-
-    return response
-  }
 }
