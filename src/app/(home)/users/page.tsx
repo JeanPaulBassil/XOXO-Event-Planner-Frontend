@@ -255,7 +255,7 @@ const Page = () => {
           removeWrapper
           isStriped
           bottomContent={
-            <div className="flex w-full justify-center">
+            <div className="flex w-full justify-center z-0">
               <Pagination
                 isCompact
                 showControls
