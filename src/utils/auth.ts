@@ -32,20 +32,7 @@ export const getAuthenticatedUser = async (accessToken: string, refreshToken?: s
     const response = await authApi.getMe(accessToken)
     return response.payload
   } catch (error) {
-    if (error instanceof ServerError && error.status === 401 && refreshToken) {
-      try {
-        const refreshResponse = await authApi.refreshTokens(refreshToken)
-        setTokens(refreshResponse.payload.accessToken, refreshResponse.payload.refreshToken)
-        const newToken = refreshResponse.payload.accessToken
-        const userResponse = await authApi.getMe(newToken)
-        return userResponse.payload
-      } catch (refreshError) {
-        clearTokens()
-        throw new Error('Authentication failed')
-      }
-    } else {
-      clearTokens()
-      throw new Error('Authentication failed')
-    }
+    clearTokens()
+    throw new Error('Authentication failed')
   }
 }

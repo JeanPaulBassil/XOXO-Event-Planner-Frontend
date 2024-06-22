@@ -24,6 +24,11 @@ import {
   useDisclosure,
 } from '@nextui-org/react'
 import Icon from '@/app/_components/Icon'
+import { UsersApi } from '@/api/users.api'
+import { ApiResponse, ServerError } from '@/api/utils'
+import { User as UserModel } from '@/api/models/User.model'
+import { useQuery } from '@tanstack/react-query'
+import { formatDate } from '@/utils/date'
 
 type UserType = {
   key: string
@@ -44,69 +49,34 @@ const Page = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const [isVisible, setIsVisible] = useState(false)
 
+  const usersApi = new UsersApi()
+
+  const {
+    data: users,
+    isLoading,
+    isError,
+    error,
+  } = useQuery<ApiResponse<UserModel[]>, ServerError>({
+    queryKey: ['users'],
+    queryFn: async () => await usersApi.getUsers(),
+  })
+
   const columns = [
     { key: 'name', label: 'Name' },
     { key: 'lastLogin', label: 'Last Login' },
     { key: 'actions', label: '' },
   ]
-  const data: UserType[] = [
-    {
-      key: '1',
-      name: 'John Doe',
-      role: 'Admin',
-      lastLogin: '2 days ago',
-      actions: 'Edit',
-    },
-    {
-      key: '2',
-      name: 'Jane Doe',
-      role: 'User',
-      lastLogin: '2 days ago',
-      actions: 'Edit',
-    },
-    {
-      key: '3',
-      name: 'John Doe',
-      role: 'Admin',
-      lastLogin: '2 days ago',
-      actions: 'Edit',
-    },
-    {
-      key: '4',
-      name: 'Jane Doe',
-      role: 'User',
-      lastLogin: '2 days ago',
-      actions: 'Edit',
-    },
-    {
-      key: '5',
-      name: 'John Doe',
-      role: 'Admin',
-      lastLogin: '2 days ago',
-      actions: 'Edit',
-    },
-    {
-      key: '6',
-      name: 'Jane Doe',
-      role: 'User',
-      lastLogin: '2 days ago',
-      actions: 'Edit',
-    },
-    {
-      key: '7',
-      name: 'John Doe',
-      role: 'Admin',
-      lastLogin: '2 days ago',
-      actions: 'Edit',
-    },
-    {
-      key: '8',
-      name: 'Jon Doe',
-      role: 'User',
-      lastLogin: '2 days ago',
-      actions: 'Edit',
-    },
-  ]
+  const data: UserType[] =
+    users?.payload.map((user: UserModel) => {
+      return {
+        key: user.id.toString(),
+        name: user.username,
+        // TODO: Add role to backend or determine role dynamically
+        role: 'Admin',
+        lastLogin: user.lastLogin ? formatDate(user.lastLogin) : '',
+        actions: 'Edit',
+      }
+    }) || []
 
   const [page, setPage] = useState(1)
   const rowsPerPage = 4
@@ -168,7 +138,7 @@ const Page = () => {
           {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1">Add User</ModalHeader>
-              <ModalBody className='mb-4'>
+              <ModalBody className="mb-4">
                 <Input
                   type="text"
                   variant="underlined"
@@ -190,7 +160,11 @@ const Page = () => {
                   // isInvalid={!!errors.password}
                   // errorMessage={errors.password?.message}
                   endContent={
-                    <button className="focus:outline-none" type="button" onClick={() => setIsVisible(!isVisible)}>
+                    <button
+                      className="focus:outline-none"
+                      type="button"
+                      onClick={() => setIsVisible(!isVisible)}
+                    >
                       {isVisible ? <Icon name="hidden" /> : <Icon name="eye" />}
                     </button>
                   }
@@ -206,7 +180,7 @@ const Page = () => {
                 <Button color="danger" variant="light" onPress={onClose}>
                   Close
                 </Button>
-                <Button color="success" onPress={onClose} className='text-light-50'>
+                <Button color="success" onPress={onClose} className="text-light-50">
                   Create
                 </Button>
               </ModalFooter>
@@ -255,7 +229,7 @@ const Page = () => {
           removeWrapper
           isStriped
           bottomContent={
-            <div className="flex w-full justify-center z-0">
+            <div className="z-0 flex w-full justify-center">
               <Pagination
                 isCompact
                 showControls

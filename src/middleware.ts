@@ -8,8 +8,6 @@ export async function middleware(request: NextRequest) {
   const accessToken = cookieJar.get('accessToken')
   const refreshToken = cookieJar.get('refreshToken')
 
-  console.log("requested in middleware:", request.nextUrl.pathname)
-
   if (request.nextUrl.pathname !== '/login') {
     if (!accessToken) {
       return NextResponse.redirect(new URL('/login', request.url))
