@@ -283,7 +283,7 @@ const Page = () => {
       return {
         key: user.id.toString(),
         name: user.username,
-        role: user.role.toLowerCase(),
+        role: user.role?.toLowerCase() ?? Roles.Admin,
         lastLogin: user.lastLogin ? formatDate(user.lastLogin) : 'User never logged in',
         actions: 'Edit',
       }
