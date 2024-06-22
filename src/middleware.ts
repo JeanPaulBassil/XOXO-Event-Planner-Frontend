@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
   const accessToken = cookieJar.get('accessToken')
   const refreshToken = cookieJar.get('refreshToken')
 
-  if (request.nextUrl.pathname === '/') {
+  if (request.nextUrl.pathname !== '/login') {
     if (!accessToken) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
@@ -39,5 +39,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/login'],
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|assets|.*\\..*).*)',
+  ],
 }

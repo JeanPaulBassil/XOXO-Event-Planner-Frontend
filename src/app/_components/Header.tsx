@@ -63,7 +63,7 @@ const Header = ({ children }: Props) => {
           onClick={() => setIsMenuOpen(false)}
           className={`${
             isMenuOpen ? 'translate-x-0 opacity-50' : 'translate-x-full opacity-0'
-          } text-black fixed right-0 top-0 z-10 h-full w-[55%] transition-opacity ease-in-out md:hidden`}
+          } text-black fixed right-0 top-0 h-full w-[55%] transition-opacity ease-in-out md:hidden z-10`}
         ></div>
         <div className="flex items-center gap-4 text-base font-medium md:gap-8">
           <nav className="hidden gap-9 lg:flex">
