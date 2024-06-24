@@ -16,6 +16,7 @@ const Header = ({ children }: Props) => {
 
   const links = [
     { name: 'Dashboard', icon: 'dashboard', href: '/' },
+    { name: 'Events', icon: 'confetti', href: '/events' },
     { name: 'Guests', icon: 'guests', href: '/guests' },
     { name: 'Calendars', icon: 'calendars', href: '/calendars' },
     { name: 'Users', icon: 'users', href: '/users' },

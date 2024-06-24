@@ -84,7 +84,17 @@ const page = () => {
       await mutateAsync(data)
     } catch (error) {
       if (error instanceof ServerError) {
-        toast.error(error.error.error.message)
+        const message = error.error.error.message
+        if (message === 'Invalid credentials') {
+          toast.error('Invalid Credentials')
+        } else if (message === 'Session Expired') {
+          toast.error('Session Expired')
+        }
+        
+        
+        else {
+          toast.error('An error occurred')
+        }
       }
     }
   }
