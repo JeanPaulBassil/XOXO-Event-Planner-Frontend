@@ -1,7 +1,7 @@
 'use client'
 import { Input } from '@nextui-org/input'
 import { Search } from 'lucide-react'
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { Chip } from '@nextui-org/chip'
 import {
   Button,
@@ -12,9 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from '@nextui-org/react'
-import { formatDate } from '@/utils/date'
+import { zonedFormatDate } from '@/utils/date'
+import { useEvents } from '../contexts/EventContext'
+import { Event } from '@/api/models/Event.model'
 
-type Event = {
+type EventInTable = {
   title: string
   start: string
   end: string
@@ -41,97 +43,71 @@ const columns = [
   },
 ]
 
-const events = [
-  {
-    title: 'Music Festival',
-    start: '2021-06-12T10:00:00',
-    end: '2021-06-13T22:00:00',
-    action: 'View',
-  },
-  {
-    title: 'Tech Conference',
-    start: '2024-07-24T10:00:00',
-    end: '2025-06-13T22:00:00',
-    action: 'View',
-  },
-  {
-    title: 'Tech Conference',
-    start: '2024-07-25T10:00:00',
-    end: '2025-06-13T22:00:00',
-    action: 'View',
-  },
-  {
-    title: 'Tech Conference',
-    start: '2021-06-12T10:00:00',
-    end: '2021-06-13T22:00:00',
-    action: 'View',
-  },
-  {
-    title: 'Music Festival',
-    start: '2021-06-12T10:00:00',
-    end: '2021-06-13T22:00:00',
-    action: 'View',
-  },
-  {
-    title: 'Tech Conference',
-    start: '2021-06-12T10:00:00',
-    end: '2021-06-13T22:00:00',
-    action: 'View',
-  },
-  {
-    title: 'Music Festival',
-    start: '2024-06-24T17:35:37.432Z',
-    end: '2021-06-13T22:00:00',
-    action: 'View',
-  },
-  {
-    title: 'Tech Conference',
-    start: '2021-06-12T10:00:00',
-    end: '2021-06-13T22:00:00',
-    action: 'View',
-  },
-]
-
 const page = () => {
   const [currentChip, setCurrentChip] = React.useState<string>(chips[0])
-  const [filteredEvents, setFilteredEvents] = React.useState<Event[]>(events)
   const [searchValue, setSearchValue] = React.useState<string>('')
+  const [filteredEvents, setFilteredEvents] = React.useState<EventInTable[]>([])
 
-  const filterEvents = useCallback((events: Event[], chip?: string, searchValue?: string) => {
-    let filteredEvents = events
+  const { events, isLoading } = useEvents()
 
-    if (searchValue) {
-      filteredEvents = filteredEvents.filter((event) =>
-        event.title.toLowerCase().includes(searchValue.toLowerCase())
-      )
+  useEffect(() => {
+    if (events) {
+      const shapedEvents: EventInTable[] = events.map((event) => ({
+        title: event.title,
+        start: event.startDate,
+        end: event.endDate,
+        action: 'View',
+      }))
+      setFilteredEvents(filterEvents(shapedEvents, currentChip, searchValue))
     }
+  }, [events, currentChip, searchValue])
 
-    if (chip === 'Upcoming') {
-      filteredEvents = filteredEvents.filter((event) => new Date(event.start) > new Date())
-    } else if (chip === 'Past') {
-      filteredEvents = filteredEvents.filter((event) => new Date(event.end) < new Date())
-    } else if (chip === 'Today') {
-      const today = new Date()
-      filteredEvents = filteredEvents.filter(
-        (event) =>
-          new Date(event.start).getDate() === today.getDate() &&
-          new Date(event.start).getMonth() === today.getMonth() &&
-          new Date(event.start).getFullYear() === today.getFullYear()
-      )
-    }
+  const filterEvents = useCallback(
+    (events: EventInTable[], chip?: string, searchValue?: string) => {
+      let filteredEvents = events
 
-    return filteredEvents
-  }, [])
+      if (searchValue) {
+        filteredEvents = filteredEvents.filter((event) =>
+          event.title.toLowerCase().includes(searchValue.toLowerCase())
+        )
+      }
+
+      if (chip === 'Upcoming') {
+        filteredEvents = filteredEvents.filter((event) => new Date(event.start) > new Date())
+      } else if (chip === 'Past') {
+        filteredEvents = filteredEvents.filter((event) => new Date(event.end) < new Date())
+      } else if (chip === 'Today') {
+        const today = new Date()
+        filteredEvents = filteredEvents.filter(
+          (event) =>
+            new Date(event.start).getDate() === today.getDate() &&
+            new Date(event.start).getMonth() === today.getMonth() &&
+            new Date(event.start).getFullYear() === today.getFullYear()
+        )
+      }
+
+      return filteredEvents
+    },
+    []
+  )
 
   const handleChipClick = useCallback(
     (chip: string) => {
       setCurrentChip(chip)
-      setFilteredEvents(filterEvents(events, chip, searchValue))
+      if (events) {
+        const shapedEvents: EventInTable[] = events.map((event) => ({
+          title: event.title,
+          start: event.startDate,
+          end: event.endDate,
+          action: 'View',
+        }))
+        setFilteredEvents(filterEvents(shapedEvents, chip, searchValue))
+      }
     },
     [searchValue, filterEvents, events]
   )
 
-  const renderCell = React.useCallback((event: Event, columnKey: ColumnKeys) => {
+  const renderCell = React.useCallback((event: EventInTable, columnKey: ColumnKeys) => {
     const cellValue = event[columnKey === ColumnKeys.EVENT ? 'title' : columnKey] as string
 
     switch (columnKey) {
@@ -139,8 +115,8 @@ const page = () => {
         return (
           <div>
             <h3 className="text-base font-medium">{event.title}</h3>
-            <p className="text-sm text-light-300">
-              {formatDate(event.start)} - {formatDate(event.end)}
+            <p className="text-sm text-light-300 max-w-[90%]">
+              {zonedFormatDate(event.start)} - {zonedFormatDate(event.end)}
             </p>
           </div>
         )
@@ -157,12 +133,28 @@ const page = () => {
 
   const onSearchClear = () => {
     setSearchValue('')
-    setFilteredEvents(filterEvents(events, currentChip))
+    if (events) {
+      const shapedEvents: EventInTable[] = events.map((event) => ({
+        title: event.title,
+        start: event.startDate,
+        end: event.endDate,
+        action: 'View',
+      }))
+      setFilteredEvents(filterEvents(shapedEvents, currentChip))
+    }
   }
 
   const onSearchChange = (value: string) => {
     setSearchValue(value)
-    setFilteredEvents(filterEvents(events, currentChip, value))
+    if (events) {
+      const shapedEvents: EventInTable[] = events.map((event) => ({
+        title: event.title,
+        start: event.startDate,
+        end: event.endDate,
+        action: 'View',
+      }))
+      setFilteredEvents(filterEvents(shapedEvents, currentChip, value))
+    }
   }
 
   return (
@@ -200,7 +192,7 @@ const page = () => {
           startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
         />
       </div>
-      <div className="flex gap-2 md:px-4">
+      <div className="flex gap-2 px-4">
         {chips.map((chip, index) => (
           <Chip
             radius="sm"
@@ -240,7 +232,9 @@ const page = () => {
             {filteredEvents.map((event, index) => (
               <TableRow key={index}>
                 {columns.map((column) => (
-                  <TableCell key={column.key} className='px-0'>{renderCell(event, column.key)}</TableCell>
+                  <TableCell key={column.key} className="px-0">
+                    {renderCell(event, column.key)}
+                  </TableCell>
                 ))}
               </TableRow>
             ))}

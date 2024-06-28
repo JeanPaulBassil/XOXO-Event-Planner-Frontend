@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Header from '../_components/Header'
+import { EventProvider } from './contexts/EventContext'
 
 export const metadata: Metadata = {
   title: 'Create Next App',
@@ -11,5 +12,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return <Header>{children}</Header>
+  return <EventProvider>
+    <Header>{children}</Header>
+    </EventProvider>
 }

@@ -82,6 +82,7 @@ export abstract class AbstractApi<T> {
     let response = await fetch(url, options)
 
     if (response.status === 401) {
+      console.log("access token expired, refreshing")
       if (refreshToken) {
         const newAccessToken = await this.refreshTokens(refreshToken)
         Cookies.set('accessToken', newAccessToken)
