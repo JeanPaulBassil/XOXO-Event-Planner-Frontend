@@ -215,7 +215,7 @@ const NewEventModal = ({ isOpen, onClose }: EventModalProps) => {
               </div>
               <div className="items-center justify-center">
                 {level === 0 && (
-                  <div className="flex max-w-72 items-center justify-between gap-10 flex-col lg:flex-row">
+                  <div className="flex max-w-72 lg:max-w-max items-center justify-between gap-10 flex-col lg:flex-row">
                     <div>
                       <Input
                         type="text"
