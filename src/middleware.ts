@@ -15,7 +15,6 @@ export async function middleware(request: NextRequest) {
 
     try {
       const user = await getAuthenticatedUser(accessToken.value, refreshToken?.value)
-      console.log("Hello")
       if (!user) {
         clearTokens()
         return NextResponse.redirect(new URL('/login', request.url))

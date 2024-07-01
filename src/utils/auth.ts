@@ -1,5 +1,4 @@
 import { AuthApi } from '@/api/auth.api'
-import { ServerError } from '@/api/utils'
 import Cookies from 'js-cookie'
 
 export const setTokens = (accessToken: string, refreshToken: string, rememberMe = false) => {
@@ -25,9 +24,9 @@ export const isAuthenticated = () => {
   return !!getAccessToken()
 }
 
-const authApi = new AuthApi()
 
 export const getAuthenticatedUser = async (accessToken: string, refreshToken?: string) => {
+  const authApi = new AuthApi()
   try {
     const response = await authApi.getMe(accessToken)
     return response.payload

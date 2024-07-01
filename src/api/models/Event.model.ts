@@ -1,3 +1,5 @@
+import { Client } from "./Client.model"
+
 export enum EventCategory {
     BabyShower = 'Baby Shower',
     BirthdayParty = 'Birthday Party',
@@ -14,4 +16,6 @@ export interface Event {
     description: string
     startDate: string
     endDate: string
+    client?: Client
+    clientId?: number
 }

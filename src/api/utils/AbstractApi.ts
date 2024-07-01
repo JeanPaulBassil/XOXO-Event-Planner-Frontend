@@ -3,6 +3,8 @@ import Cookies from 'js-cookie'
 import { clearTokens, getAccessToken, getRefreshToken } from '@/utils/auth'
 import { access } from 'fs'
 import { Tokens } from '../models/Tokens.model'
+import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3200/'
 
@@ -71,7 +73,7 @@ export abstract class AbstractApi<T> {
   private async fetchWithAuth(url: string, options: RequestInit): Promise<Response> {
     const accessToken = Cookies.get('accessToken')
     const refreshToken = Cookies.get('refreshToken')
-
+    
     if (accessToken) {
       options.headers = {
         ...options.headers,
@@ -82,7 +84,6 @@ export abstract class AbstractApi<T> {
     let response = await fetch(url, options)
 
     if (response.status === 401) {
-      console.log("access token expired, refreshing")
       if (refreshToken) {
         const newAccessToken = await this.refreshTokens(refreshToken)
         Cookies.set('accessToken', newAccessToken)

@@ -22,7 +22,6 @@ export const formatDate = (dateString: string): string => {
 }
 
 export const zonedFormatDate = (dateString: string): string => {
-  console.log(dateString);
   
   const timeZone = 'UTC'; // or your desired time zone
   const date = new Date(dateString);
