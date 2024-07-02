@@ -36,7 +36,6 @@ type Props = {
   children: React.ReactNode
 }
 
-
 const Header = ({ children }: Props) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
 
@@ -78,7 +77,7 @@ const Header = ({ children }: Props) => {
               <ul className="mt-6 space-y-4">
                 {links.map((link: { name: string; icon: string; href: string }) => (
                   <li key={link.name}>
-                    <Link href={link.href} className="flex items-center gap-2 px-2 py-2">
+                    <Link href={link.href} className="flex items-center gap-2 px-2 py-2" onClick={() => setIsMenuOpen(false)}>
                       <Icon name={link.icon} />
                       <p>{link.name}</p>
                     </Link>
@@ -99,17 +98,15 @@ const Header = ({ children }: Props) => {
             <ul className="flex space-x-10">
               {links.map((link: { name: string; icon: string; href: string }) => (
                 <li key={link.name}>
-                  <Link href={link.href}>{link.name}</Link>
+                  <Link href={link.href} >
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>
           </nav>
-          <Link
-            href="/events/create"
-          >
-            <button
-              className="h-10 rounded bg-light-500 px-4 font-semibold text-light-50"
-            >
+          <Link href="/events/create">
+            <button className="h-10 rounded bg-light-500 px-4 font-semibold text-light-50">
               <p className="hidden md:block">New Event</p>
               <div className="md:hidden">
                 <Icon name="plus" />
@@ -139,7 +136,7 @@ const Section = (props: SectionProps) => {
   const { title, description, form } = props
   return (
     <div
-      className={`flex flex-col items-center justify-start lg:flex-row lg:items-center md:p-8 md:py-16`}
+      className={`flex flex-col items-center justify-start md:p-8 md:py-16 lg:flex-row lg:items-center`}
     >
       {/* Left Part */}
       <div className={`flex flex-col items-stretch text-center md:w-[350px]`}>

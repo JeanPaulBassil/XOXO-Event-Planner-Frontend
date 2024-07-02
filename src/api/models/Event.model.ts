@@ -1,9 +1,9 @@
 import { Client } from "./Client.model"
 
 export enum EventCategory {
-    BabyShower = 'Baby Shower',
-    BirthdayParty = 'Birthday Party',
-    Baptism = 'Baptism',
+    BabyShower = 'BABYSHOWER',
+    BirthdayParty = 'BIRTHDAYPARTY',
+    Baptism = 'BAPTISM',
 }
 
 export interface Event {

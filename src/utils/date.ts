@@ -42,7 +42,7 @@ export const zonedFormatDate = (dateString: string): string => {
   const formattedDate = new Intl.DateTimeFormat('en-US', dateOptions).format(zonedDate);
   const formattedTime = new Intl.DateTimeFormat('en-US', timeOptions).format(zonedDate);
 
-  const finalFormattedTime = formattedTime.replace(':00', '').replace(' AM', 'am').replace(' PM', 'pm');
+  const finalFormattedTime = formattedTime.replace(':00', '').replace(' AM', ' am').replace(' PM', ' pm');
 
   return `${formattedDate} at ${finalFormattedTime}`;
 };

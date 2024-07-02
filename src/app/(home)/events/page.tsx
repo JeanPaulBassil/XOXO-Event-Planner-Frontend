@@ -15,8 +15,10 @@ import {
 import { zonedFormatDate } from '@/utils/date'
 import { useEvents } from '../contexts/EventContext'
 import { Event } from '@/api/models/Event.model'
+import Link from 'next/link'
 
 type EventInTable = {
+  id: number
   title: string
   start: string
   end: string
@@ -53,6 +55,7 @@ const page = () => {
   useEffect(() => {
     if (events) {
       const shapedEvents: EventInTable[] = events.map((event) => ({
+        id: event.id || 0,
         title: event.title,
         start: event.startDate,
         end: event.endDate,
@@ -96,6 +99,7 @@ const page = () => {
       setCurrentChip(chip)
       if (events) {
         const shapedEvents: EventInTable[] = events.map((event) => ({
+          id: event.id || 0,
           title: event.title,
           start: event.startDate,
           end: event.endDate,
@@ -115,16 +119,18 @@ const page = () => {
         return (
           <div>
             <h3 className="text-base font-medium">{event.title}</h3>
-            <p className="text-sm text-light-300 max-w-[90%]">
+            <p className="max-w-[90%] text-sm text-light-300">
               {zonedFormatDate(event.start)} - {zonedFormatDate(event.end)}
             </p>
           </div>
         )
       case ColumnKeys.ACTION:
         return (
-          <Button radius="sm" size="sm" className="bg-light-100 font-medium">
-            {cellValue}
-          </Button>
+          <Link href={`/events/${event.id}`}>
+            <Button radius="sm" size="sm" className="bg-light-100 font-medium">
+              {cellValue}
+            </Button>
+          </Link>
         )
       default:
         return cellValue
@@ -135,6 +141,7 @@ const page = () => {
     setSearchValue('')
     if (events) {
       const shapedEvents: EventInTable[] = events.map((event) => ({
+        id: event.id || 0,
         title: event.title,
         start: event.startDate,
         end: event.endDate,
@@ -148,6 +155,7 @@ const page = () => {
     setSearchValue(value)
     if (events) {
       const shapedEvents: EventInTable[] = events.map((event) => ({
+        id: event.id || 0,
         title: event.title,
         start: event.startDate,
         end: event.endDate,

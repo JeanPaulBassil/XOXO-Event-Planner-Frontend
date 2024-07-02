@@ -12,6 +12,7 @@ type EventContextType = {
   events: Event[] | undefined
   isLoading: boolean
   createEvent: (newEvent: Partial<Event>) => Promise<void>
+  getEvent: (id: number) => Promise<Event | undefined>
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined)
@@ -76,8 +77,12 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await mutateAsync(newEvent)
   }
 
+  const getEvent = async (id: number) => {
+    return events?.find((event) => event.id === id)
+  }
+
   return (
-    <EventContext.Provider value={{ events, isLoading, createEvent }}>
+    <EventContext.Provider value={{ events, isLoading, createEvent, getEvent }}>
       {children}
     </EventContext.Provider>
   )
