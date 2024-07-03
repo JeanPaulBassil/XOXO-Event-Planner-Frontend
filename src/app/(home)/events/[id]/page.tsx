@@ -87,11 +87,11 @@ const Page = ({ params }: Props) => {
         )}
         <div className="flex items-center gap-4">
           <button className="flex items-center gap-2 rounded-md bg-light-100 p-3">
-            <p className="hidden font-semibold md:block">Edit</p>
+            <p className="hidden font-semibold lg:block">Edit</p>
             <Edit size={20} />
           </button>
           <button className="flex items-center gap-2 rounded-md bg-light-100 p-3">
-            <p className="hidden font-semibold md:block">Add Payment</p>
+            <p className="hidden font-semibold lg:block">Add Payment</p>
             <Coins size={20} />
           </button>
         </div>
