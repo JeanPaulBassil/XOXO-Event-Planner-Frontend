@@ -69,7 +69,7 @@ const page = () => {
     },
     onSuccess: (data) => {
       try {
-        setTokens(data.accessToken, data.refreshToken, data.rememberMe)
+        setTokens(data.accessToken, data.refreshToken)
         router.push('/')
         console.log('hi')
         toast.success('Sign In Successful')
