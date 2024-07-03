@@ -1,3 +1,4 @@
+import { Time } from '@internationalized/date';
 import { toZonedTime, format } from 'date-fns-tz';
 
 export const formatDate = (dateString: string): string => {
@@ -46,3 +47,12 @@ export const zonedFormatDate = (dateString: string): string => {
 
   return `${formattedDate} at ${finalFormattedTime}`;
 };
+
+export function parseTimeFromISO(isoString: string) {
+  const date = new Date(isoString);
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = date.getSeconds();
+  const milliseconds = date.getMilliseconds();
+  return new Time(hours, minutes, seconds, milliseconds);
+}

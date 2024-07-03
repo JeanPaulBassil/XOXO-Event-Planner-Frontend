@@ -29,26 +29,15 @@ export class ClientsApi extends AbstractApi<Client> {
     return response
   }
 
-  //   async deleteUser(id: string): Promise<ApiResponse<User>> {
-  //     const response: ApiResponse<User> = (await this.doFetch({
-  //       requestOptions: {
-  //         method: 'DELETE',
-  //       },
-  //       pathExtension: id,
-  //     })) as ApiResponse<User>
+  async updateClient(id: number, client: Partial<Client>): Promise<ApiResponse<Client>> {
+    const response: ApiResponse<Client> = (await this.doFetch({
+      requestOptions: {
+        method: 'PUT',
+        body: JSON.stringify(client),
+      },
+      pathExtension: id.toString(),
+    })) as ApiResponse<Client>
 
-  //     return response
-  //   }
-
-  //   async editUser(id: string, username?: string, role?: string): Promise<ApiResponse<User>> {
-  //     const response: ApiResponse<User> = (await this.doFetch({
-  //       requestOptions: {
-  //         method: 'PUT',
-  //         body: JSON.stringify({ username, role }),
-  //       },
-  //       pathExtension: id,
-  //     })) as ApiResponse<User>
-
-  //     return response
-  //   }
+    return response
+  }
 }

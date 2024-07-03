@@ -18,4 +18,7 @@ export interface Event {
     endDate: string
     client?: Client
     clientId?: number
+    ageGroup: string
+    numberOfAttendees: number
+    extraNote: string
 }

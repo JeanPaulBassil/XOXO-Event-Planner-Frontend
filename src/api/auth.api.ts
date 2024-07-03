@@ -1,3 +1,4 @@
+import { setTokens } from '@/utils/auth'
 import { Tokens } from './models/Tokens.model'
 import { User } from './models/User.model'
 import { AbstractApi, ApiRequestParams, ApiResponse } from './utils'
@@ -16,7 +17,7 @@ export class AuthApi extends AbstractApi<User | Tokens> {
         body: JSON.stringify({ username, password }),
       },
       pathExtension: 'login',
-    })) as ApiResponse<Tokens>
+    }, false)) as ApiResponse<Tokens>
 
     return response
   }

@@ -1,27 +1,31 @@
 'use client'
 import { EventCategory } from '@/api/models/Event.model'
-import { Time, parseDate, CalendarDate } from '@internationalized/date'
+import { Time, parseDate } from '@internationalized/date'
 import {
   Autocomplete,
   AutocompleteItem,
   Button,
+  CalendarDate,
   DatePicker,
   DateRangePicker,
   DateValue,
   Divider,
   Input,
   Spacer,
+  Spinner,
   Textarea,
   TimeInput,
 } from '@nextui-org/react'
 import Joi from 'joi'
-import React from 'react'
-import { useEvents } from '../../contexts/EventContext'
+import React, { useEffect, useState } from 'react'
+import { useEvents } from '@/app/(home)/contexts/EventContext'
 import { Controller, useForm } from 'react-hook-form'
 import { joiResolver } from '@hookform/resolvers/joi'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
+import { Event } from '@/api/models/Event.model'
+import { parseTimeFromISO } from '@/utils/date'
 
 interface SectionProps {
   form: React.ReactNode
@@ -32,11 +36,15 @@ interface SectionProps {
 const Section = (props: SectionProps) => {
   const { title, description, form } = props
   return (
-    <div className="mt-10 flex w-full flex-col items-start justify-start p-3 md:p-8 md:py-16 lg:flex-row lg:items-center">
-      <div className="flex w-full flex-col md:w-[350px]">
+    <div
+      className={`mt-10 flex w-full flex-col items-start justify-start p-3 md:p-8 md:py-16 lg:flex-row lg:items-center`}
+    >
+      {/* Left Part */}
+      <div className={`flex w-full flex-col md:w-[350px]`}>
         <h3 className="text-secondary-950 text-base dark:text-secondary-50">{title}</h3>
         <p className="mt-0.5 text-wrap text-small text-light-300 md:w-[90%]">{description}</p>
       </div>
+      {/* Right Part */}
       {form}
     </div>
   )
@@ -44,7 +52,7 @@ const Section = (props: SectionProps) => {
 
 type FormData = {
   clientName: string
-  clientBirthday: DateValue
+  clientBirthday?: DateValue
   clientMobile: string
   clientEmail: string
   clientAddress: string
@@ -61,7 +69,7 @@ type FormData = {
   extraNote: string
 }
 
-const createEventSchema = Joi.object({
+const editEventSchema = Joi.object({
   clientName: Joi.string().required().messages({
     'any.required': 'Client name is required',
   }),
@@ -117,9 +125,12 @@ const createEventSchema = Joi.object({
   extraNote: Joi.string().optional().allow(''),
 })
 
-export default function CreateEventPage() {
-  const { createEvent } = useEvents()
+export default function EditEventPage({ params }: { params: { id: string } }) {
+  const { getEvent, editEvent } = useEvents()
+  const [event, setEvent] = useState<Event | undefined>(undefined)
+  const [loading, setLoading] = useState<boolean>(true)
   const router = useRouter()
+  const { id } = params
 
   const {
     handleSubmit,
@@ -127,10 +138,55 @@ export default function CreateEventPage() {
     setError,
     reset,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: joiResolver(createEventSchema),
+    resolver: joiResolver(editEventSchema),
   })
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      const eventData = await getEvent(Number(id))
+      setEvent(eventData)
+      console.log('Event Data:', eventData)
+      if (eventData) {
+        setValue('clientName', eventData?.client?.name || '')
+        setValue(
+          'clientBirthday',
+          eventData?.client?.birthdate
+            ? parseDate(eventData.client.birthdate.split('T')[0])
+            : undefined
+        )
+        setValue('clientAddress', eventData?.client?.address || '')
+        setValue('clientEmail', eventData?.client?.email || '')
+        setValue('clientMobile', eventData?.client?.phone || '')
+        setValue('title', eventData.title)
+        setValue('category', eventData.category)
+        setValue('price', eventData.price)
+        setValue('deposit', eventData.deposit)
+        setValue('description', eventData.description)
+        setValue('dateRange', {
+          start: parseDate(eventData.startDate.split('T')[0]),
+          end: parseDate(eventData.endDate.split('T')[0]),
+        })
+        setValue('startTime', parseTimeFromISO(eventData.startDate))
+        setValue('endTime', parseTimeFromISO(eventData.endDate))
+        setValue('ageGroup', eventData.ageGroup)
+        setValue('numberOfAttendees', eventData.numberOfAttendees)
+        setValue('extraNote', eventData.extraNote)
+      }
+      setLoading(false)
+    }
+    fetchEvent()
+  }, [id, getEvent, setValue])
+
+  if (!event) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    )
+  }
 
   const onSubmit = async (data: FormData) => {
     const startDateTime = new Date(
@@ -144,8 +200,20 @@ export default function CreateEventPage() {
       return
     }
 
+    if (data.deposit > data.price) {
+      setError('deposit', { message: 'Deposit cannot be more than the price' })
+      toast.error('Deposit cannot be more than the price')
+      return
+    }
+
+    if (data.clientBirthday && new Date(data.clientBirthday.toString()) > new Date()) {
+      setError('clientBirthday', { message: 'Birthday cannot be in the future' })
+      toast.error('Birthday cannot be in the future')
+      return
+    }
+
     try {
-      const newEvent = {
+      const updatedEvent = {
         title: data.title,
         category: data.category,
         price: data.price,
@@ -155,23 +223,24 @@ export default function CreateEventPage() {
         endDate: endDateTime.toISOString(),
         remaining: data.price - data.deposit,
         client: {
+          id: event.client?.id,
           name: data.clientName,
           email: data.clientEmail,
           phone: data.clientMobile,
           address: data.clientAddress,
-          birthdate: data.clientBirthday ? data.clientBirthday.toString() : null,
+          birthdate: data.clientBirthday ? `${data.clientBirthday.toString()}T00:00:00Z` : null,
         },
         ageGroup: data.ageGroup,
         numberOfAttendees: data.numberOfAttendees,
         extraNote: data.extraNote,
       }
 
-      await createEvent(newEvent)
+      await editEvent(Number(id), updatedEvent)
       router.push('/events')
-      toast.success(`Event ${data.title} created successfully.`)
+      toast.success(`Event ${data.title} updated successfully.`)
       reset()
     } catch (error) {
-      toast.error('Failed to create event')
+      toast.error('Failed to update event')
       if (error instanceof Error) {
         setError('root', { message: error.message })
       }
@@ -180,11 +249,10 @@ export default function CreateEventPage() {
 
   const toDateValue = (date: Date) => parseDate(date.toISOString().split('T')[0])
 
-  console.log('errors', errors)
   return (
     <div className="flex h-full w-full flex-grow flex-col items-start text-light-400">
       <div className="px-3 py-4 md:px-10 md:py-8">
-        <h1 className="text-2xl font-bold">Add New Event</h1>
+        <h1 className="text-2xl font-bold">Edit Event</h1>
       </div>
       <Spacer y={2} />
       <Divider className="bg-light-200" />
@@ -379,6 +447,7 @@ export default function CreateEventPage() {
             </div>
           }
         />
+        {/* Third section contains event dateRange, event start time and event end time */}
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
@@ -452,6 +521,7 @@ export default function CreateEventPage() {
             </div>
           }
         />
+        {/* this section contains Amount Due, Deposit, and extra note (textarea) */}
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
@@ -482,8 +552,8 @@ export default function CreateEventPage() {
                 readOnly={isSubmitting}
               />
               <Input
-                type="number"
                 isRequired
+                type="number"
                 variant="underlined"
                 label="Deposit"
                 isClearable
@@ -514,7 +584,7 @@ export default function CreateEventPage() {
             isLoading={isSubmitting}
             endContent={<Plus size={20} />}
           >
-            Create Event
+            Update Event
           </Button>
         </div>
       </form>

@@ -13,6 +13,7 @@ type EventContextType = {
   isLoading: boolean
   createEvent: (newEvent: Partial<Event>) => Promise<void>
   getEvent: (id: number) => Promise<Event | undefined>
+  editEvent: (id: number, updatedEvent: Partial<Event>) => Promise<void>
 }
 
 const EventContext = createContext<EventContextType | undefined>(undefined)
@@ -38,7 +39,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     },
   })
 
-  const { mutateAsync } = useMutation<Event, ServerError, Partial<Event>>({
+  const { mutateAsync: createMutateAsync } = useMutation<Event, ServerError, Partial<Event>>({
     mutationFn: async (newEvent: Partial<Event>) => {
       const clientResponse: ApiResponse<Client> = await clientsApi.createClient(
         newEvent.client as Client
@@ -74,15 +75,57 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   })
 
   const createEvent = async (newEvent: Partial<Event>) => {
-    await mutateAsync(newEvent)
+    await createMutateAsync(newEvent)
   }
 
   const getEvent = async (id: number) => {
     return events?.find((event) => event.id === id)
   }
 
+  const { mutateAsync: editMutateAsync } = useMutation<
+    Event,
+    ServerError,
+    { id: number; updatedEvent: Partial<Event> }
+  >({
+    mutationFn: async ({ id, updatedEvent }) => {
+      console.log('editEvent', id, updatedEvent)
+      if (updatedEvent.client) {
+        if (updatedEvent.client.id)
+          await clientsApi.updateClient(updatedEvent.client.id, updatedEvent.client)
+      }
+      const response: ApiResponse<Event> = await eventsApi.updateEvent(id, updatedEvent)
+      return response.payload
+    },
+    onMutate: async ({ id, updatedEvent }) => {
+      await queryClient.cancelQueries({
+        queryKey: ['events'],
+      })
+      const previousEvents = queryClient.getQueryData<Event[]>(['events'])
+      if (previousEvents) {
+        queryClient.setQueryData<Event[]>(
+          ['events'],
+          previousEvents.map((event) => (event.id === id ? { ...event, ...updatedEvent } : event))
+        )
+      }
+      return { previousEvents }
+    },
+    onError: (err, { id, updatedEvent }, context) => {
+      const { previousEvents } = context as { previousEvents: Event[] }
+      queryClient.setQueryData<Event[]>(['events'], previousEvents)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['events'],
+      })
+    },
+  })
+
+  const editEvent = async (id: number, updatedEvent: Partial<Event>) => {
+    await editMutateAsync({ id, updatedEvent })
+  }
+
   return (
-    <EventContext.Provider value={{ events, isLoading, createEvent, getEvent }}>
+    <EventContext.Provider value={{ events, isLoading, createEvent, getEvent, editEvent }}>
       {children}
     </EventContext.Provider>
   )

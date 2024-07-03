@@ -1,29 +1,18 @@
 import { AuthApi } from '@/api/auth.api'
 import Cookies from 'js-cookie'
 
-export const setTokens = (accessToken: string, refreshToken: string, rememberMe = false) => {
+export const setTokens = (accessToken: string, refreshToken: string) => {
+  console.log('setting access token')
   Cookies.set('accessToken', accessToken, { expires: 0.5 })
-  if (!rememberMe) return
+  console.log('setting refresh token')
   Cookies.set('refreshToken', refreshToken, { expires: 7 })
-}
-
-export const getAccessToken = () => {
-  return Cookies.get('accessToken')
-}
-
-export const getRefreshToken = () => {
-  return Cookies.get('refreshToken')
+  console.log('tokens set')
 }
 
 export const clearTokens = () => {
   Cookies.remove('accessToken')
   Cookies.remove('refreshToken')
 }
-
-export const isAuthenticated = () => {
-  return !!getAccessToken()
-}
-
 
 export const getAuthenticatedUser = async (accessToken: string, refreshToken?: string) => {
   const authApi = new AuthApi()

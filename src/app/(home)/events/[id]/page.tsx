@@ -6,6 +6,7 @@ import { toCapitalCase } from '@/utils/string'
 import { Skeleton } from '@nextui-org/react'
 import { Coins, Edit } from 'lucide-react'
 import { zonedFormatDate } from '@/utils/date'
+import Link from 'next/link'
 
 type Props = {
   params: {
@@ -86,10 +87,12 @@ const Page = ({ params }: Props) => {
           </Skeleton>
         )}
         <div className="flex items-center gap-4">
-          <button className="flex items-center gap-2 rounded-md bg-light-100 p-3">
-            <p className="hidden font-semibold lg:block">Edit</p>
-            <Edit size={20} />
-          </button>
+          <Link href={`/events/${params.id}/edit`}>
+            <button className="flex items-center gap-2 rounded-md bg-light-100 p-3">
+              <p className="hidden font-semibold lg:block">Edit</p>
+              <Edit size={20} />
+            </button>
+          </Link>
           <button className="flex items-center gap-2 rounded-md bg-light-100 p-3">
             <p className="hidden font-semibold lg:block">Add Payment</p>
             <Coins size={20} />
@@ -157,7 +160,7 @@ const Page = ({ params }: Props) => {
         {event ? (
           <p>{event.description === '' ? 'No Description' : event.description}</p>
         ) : (
-          <div className='flex flex-col gap-2'>
+          <div className="flex flex-col gap-2">
             <Skeleton className="w-full rounded-lg">
               <div className="h-3 w-full rounded-lg bg-default-200"></div>
             </Skeleton>
@@ -178,7 +181,7 @@ const Page = ({ params }: Props) => {
         {event ? (
           <p>{event.description === '' ? 'No Notes' : event.description}</p>
         ) : (
-          <div className='flex flex-col gap-2'>
+          <div className="flex flex-col gap-2">
             <Skeleton className="w-full rounded-lg">
               <div className="h-3 w-full rounded-lg bg-default-200"></div>
             </Skeleton>

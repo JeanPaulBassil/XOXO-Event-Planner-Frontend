@@ -1,10 +1,6 @@
 import { ApiResponse, ResponseError, ServerError } from '.'
 import Cookies from 'js-cookie'
-import { clearTokens, getAccessToken, getRefreshToken } from '@/utils/auth'
-import { access } from 'fs'
 import { Tokens } from '../models/Tokens.model'
-import toast from 'react-hot-toast'
-import { useRouter } from 'next/navigation'
 
 export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3200/'
 
@@ -40,12 +36,10 @@ export abstract class AbstractApi<T> {
       const body: Tokens = await response.json()
       return body.accessToken
     } catch (error) {
-      // If the error is from the backend, it should follow the ResponseError structure
       if (error instanceof ServerError) {
         throw error
       }
 
-      // If the error is not from the backend, we create a similar structure to maintain consistency
       if (error instanceof Error) {
         throw new ServerError({
           error: {
@@ -73,7 +67,7 @@ export abstract class AbstractApi<T> {
   private async fetchWithAuth(url: string, options: RequestInit): Promise<Response> {
     const accessToken = Cookies.get('accessToken')
     const refreshToken = Cookies.get('refreshToken')
-    
+
     if (accessToken) {
       options.headers = {
         ...options.headers,
@@ -100,7 +94,14 @@ export abstract class AbstractApi<T> {
     return response
   }
 
-  protected async doFetch(requestParams?: ApiRequestParams): Promise<ApiResponse<T | T[]>> {
+  private async fetchWithoutAuth(url: string, options: RequestInit): Promise<Response> {
+    return await fetch(url, options)
+  }
+
+  protected async doFetch(
+    requestParams?: ApiRequestParams,
+    secure: boolean = true
+  ): Promise<ApiResponse<T | T[]>> {
     let url = `${baseUrl}${this.path}`
 
     if (requestParams && requestParams.pathExtension) {
@@ -113,14 +114,23 @@ export abstract class AbstractApi<T> {
     }
 
     try {
-      const response = await this.fetchWithAuth(url, {
-        ...requestParams?.requestOptions,
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          ...(requestParams?.requestOptions?.headers ?? {}),
-        },
-        cache: 'no-store',
-      })
+      const response = secure
+        ? await this.fetchWithAuth(url, {
+            ...requestParams?.requestOptions,
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+              ...(requestParams?.requestOptions?.headers ?? {}),
+            },
+            cache: 'no-store',
+          })
+        : await this.fetchWithoutAuth(url, {
+            ...requestParams?.requestOptions,
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+              ...(requestParams?.requestOptions?.headers ?? {}),
+            },
+            cache: 'no-store',
+          })
 
       if (!response.ok) {
         const errorBody = await response.json()
@@ -130,12 +140,10 @@ export abstract class AbstractApi<T> {
       const body = await response.json()
       return { payload: body.payload, meta: body.meta }
     } catch (error) {
-      // If the error is from the backend, it should follow the ResponseError structure
       if (error instanceof ServerError) {
         throw error
       }
 
-      // If the error is not from the backend, we create a similar structure to maintain consistency
       if (error instanceof Error) {
         throw new ServerError({
           error: {

@@ -68,9 +68,14 @@ const page = () => {
       }
     },
     onSuccess: (data) => {
-      setTokens(data.accessToken, data.refreshToken, data.rememberMe)
-      router.push('/')
-      toast.success('Sign In Successful')
+      try {
+        setTokens(data.accessToken, data.refreshToken, data.rememberMe)
+        router.push('/')
+        console.log('hi')
+        toast.success('Sign In Successful')
+      } catch (error) {
+        console.log('Error:', error)
+      }
     },
   })
 
@@ -89,10 +94,7 @@ const page = () => {
           toast.error('Invalid Credentials')
         } else if (message === 'Session Expired') {
           toast.error('Session Expired')
-        }
-        
-        
-        else {
+        } else {
           toast.error('An error occurred')
         }
       }
@@ -101,12 +103,12 @@ const page = () => {
 
   return (
     <div className="flex h-screen flex-col">
-      <div className="flex w-full items-center justify-between border border-light-100 px-1 py-3 lg:px-3 md:px-10">
+      <div className="flex w-full items-center justify-between border border-light-100 px-1 py-3 md:px-10 lg:px-3">
         <Image src="/logo.png" alt="Logo" width={100} height={100} className="lg:w-[100px]" />
       </div>
       <div className="flex h-full w-full items-center justify-center">
-        <div className="flex h-full w-full flex-col items-center justify-center rounded-md px-4 py-20 lg:h-auto lg:w-[521px] lg:bg-light-100 md:px-9">
-          <h1 className="text-lg font-bold md:text-2xl sm:text-xl">Welcome to The Event Manager</h1>
+        <div className="flex h-full w-full flex-col items-center justify-center rounded-md px-4 py-20 md:px-9 lg:h-auto lg:w-[521px] lg:bg-light-100">
+          <h1 className="text-lg font-bold sm:text-xl md:text-2xl">Welcome to The Event Manager</h1>
           <form onSubmit={handleSubmit(onSubmit)} className="w-full">
             <Input
               type="text"

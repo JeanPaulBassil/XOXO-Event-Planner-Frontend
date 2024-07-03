@@ -40,15 +40,18 @@ export class EventsApi extends AbstractApi<Event> {
   //     return response
   //   }
 
-  //   async editUser(id: string, username?: string, role?: string): Promise<ApiResponse<User>> {
-  //     const response: ApiResponse<User> = (await this.doFetch({
-  //       requestOptions: {
-  //         method: 'PUT',
-  //         body: JSON.stringify({ username, role }),
-  //       },
-  //       pathExtension: id,
-  //     })) as ApiResponse<User>
+  async updateEvent(id: number, event: Partial<Event>): Promise<ApiResponse<Event>> {
+    console.log('updateEvent', id, event)
+    
+    const response: ApiResponse<Event> = (await this.doFetch({
+      requestOptions: {
+        method: 'PUT',
+        body: JSON.stringify(event),
+      },
+      pathExtension: id.toString(),
+    })) as ApiResponse<Event>
 
-  //     return response
-  //   }
+    console.log(response)
+    return response
+  }
 }
