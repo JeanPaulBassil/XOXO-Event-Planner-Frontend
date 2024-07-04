@@ -47,6 +47,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const response: ApiResponse<Event> = await eventsApi.createEvent({
         ...newEvent,
         clientId: clientResponse.payload.id,
+        paidAmount: newEvent.deposit || 0,
+        remaining: newEvent.price! - (newEvent.deposit || 0),
       } as Event)
       return response.payload
     },
@@ -88,12 +90,20 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     { id: number; updatedEvent: Partial<Event> }
   >({
     mutationFn: async ({ id, updatedEvent }) => {
-      console.log('editEvent', id, updatedEvent)
       if (updatedEvent.client) {
         if (updatedEvent.client.id)
           await clientsApi.updateClient(updatedEvent.client.id, updatedEvent.client)
       }
-      const response: ApiResponse<Event> = await eventsApi.updateEvent(id, updatedEvent)
+
+      console.log("updatedEvent", {
+        ...updatedEvent,
+        remaining: updatedEvent.price! - (updatedEvent.paidAmount || 0),
+      })
+      const response: ApiResponse<Event> = await eventsApi.updateEvent(id, {
+        ...updatedEvent,
+        remaining: updatedEvent.price! - (updatedEvent.paidAmount || 0),
+      })
+      console.log("response", response.payload)
       return response.payload
     },
     onMutate: async ({ id, updatedEvent }) => {
@@ -104,7 +114,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (previousEvents) {
         queryClient.setQueryData<Event[]>(
           ['events'],
-          previousEvents.map((event) => (event.id === id ? { ...event, ...updatedEvent } : event))
+          previousEvents.map((event) => (event.id === id ? { ...event, ...updatedEvent, remaining: updatedEvent.price! - (updatedEvent.paidAmount || 0) } : event))
         )
       }
       return { previousEvents }

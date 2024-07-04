@@ -41,8 +41,6 @@ export class EventsApi extends AbstractApi<Event> {
   //   }
 
   async updateEvent(id: number, event: Partial<Event>): Promise<ApiResponse<Event>> {
-    console.log('updateEvent', id, event)
-    
     const response: ApiResponse<Event> = (await this.doFetch({
       requestOptions: {
         method: 'PUT',
@@ -51,7 +49,6 @@ export class EventsApi extends AbstractApi<Event> {
       pathExtension: id.toString(),
     })) as ApiResponse<Event>
 
-    console.log(response)
     return response
   }
 }

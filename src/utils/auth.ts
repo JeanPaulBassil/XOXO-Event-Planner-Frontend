@@ -1,12 +1,22 @@
-import { AuthApi } from '@/api/auth.api'
 import Cookies from 'js-cookie'
+import { jwtDecode } from 'jwt-decode'
 
-export const setTokens = (accessToken: string, refreshToken: string) => {
-  console.log('setting access token')
+export interface DecodedToken {
+  exp: number
+  iat: number
+  sub: string
+  role: string
+  username: string
+}
+
+export const setTokens = (accessToken: string, refreshToken?: string) => {
   Cookies.set('accessToken', accessToken, { expires: 0.5 })
-  console.log('setting refresh token')
+  if (!refreshToken) return
   Cookies.set('refreshToken', refreshToken, { expires: 7 })
-  console.log('tokens set')
+}
+
+export const setAccessToken = (accessToken: string) => {
+  Cookies.set('accessToken', accessToken, { expires: 0.5 })
 }
 
 export const clearTokens = () => {
@@ -14,13 +24,10 @@ export const clearTokens = () => {
   Cookies.remove('refreshToken')
 }
 
-export const getAuthenticatedUser = async (accessToken: string, refreshToken?: string) => {
-  const authApi = new AuthApi()
-  try {
-    const response = await authApi.getMe(accessToken)
-    return response.payload
-  } catch (error) {
-    clearTokens()
-    throw new Error('Authentication failed')
-  }
+export const getAuthenticatedUser = async () => {
+  const accessToken = Cookies.get('accessToken')
+  if (!accessToken) return null
+  // decode access token
+  const decodedToken = jwtDecode<DecodedToken>(accessToken)
+  return decodedToken
 }

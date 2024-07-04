@@ -69,12 +69,13 @@ const page = () => {
     },
     onSuccess: (data) => {
       try {
-        setTokens(data.accessToken, data.refreshToken)
+        if (data.rememberMe) {
+          setTokens(data.accessToken, data.refreshToken)
+        } else setTokens(data.accessToken)
         router.push('/')
-        console.log('hi')
         toast.success('Sign In Successful')
       } catch (error) {
-        console.log('Error:', error)
+        toast.error('An error occurred')
       }
     },
   })

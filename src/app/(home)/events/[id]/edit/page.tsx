@@ -148,7 +148,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
     const fetchEvent = async () => {
       const eventData = await getEvent(Number(id))
       setEvent(eventData)
-      console.log('Event Data:', eventData)
+      ('Event Data:', eventData)
       if (eventData) {
         setValue('clientName', eventData?.client?.name || '')
         setValue(

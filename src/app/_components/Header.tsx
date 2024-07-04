@@ -1,43 +1,53 @@
 'use client'
-import React from 'react'
+import React, { ReactElement, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Avatar } from '@nextui-org/avatar'
 import Icon from './Icon'
-import { usePathname } from 'next/navigation'
-import {
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  useDisclosure,
-} from '@nextui-org/modal'
-import {
-  Autocomplete,
-  AutocompleteItem,
-  Button,
-  DatePicker,
-  DateRangePicker,
-  DateValue,
-  Input,
-  Textarea,
-  TimeInput,
-} from '@nextui-org/react'
-import { Controller, useForm } from 'react-hook-form'
-import { joiResolver } from '@hookform/resolvers/joi'
-import toast from 'react-hot-toast'
-import Joi from 'joi'
-import { EventCategory } from '@/api/models/Event.model'
-import { useEvents } from '../(home)/contexts/EventContext'
-import { parseDate, CalendarDate, Time, DateField } from '@internationalized/date'
+import { Divider, Popover, PopoverContent, PopoverTrigger, Spinner } from '@nextui-org/react'
+import { ChevronDown, LogOut } from 'lucide-react'
+import { get } from 'http'
+import { clearTokens, DecodedToken, getAuthenticatedUser } from '@/utils/auth'
+import { set } from 'react-hook-form'
+import { useRouter } from 'next/navigation'
+import { toCapitalCase } from '@/utils/string'
 
 type Props = {
   children: React.ReactNode
 }
 
+export interface IconMenuItem {
+  icon: ReactElement
+  label: string
+  link?: string
+  action?: () => void
+  divider?: boolean
+  matcher?: string
+}
+
 const Header = ({ children }: Props) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
+  const [user, setUser] = React.useState<DecodedToken | null>(null)
+  const router = useRouter()
+  const [loading, setLoading] = React.useState(true)
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = await getAuthenticatedUser()
+      if (!user) {
+        router.push('/signin')
+      }
+      setUser(user)
+      setLoading(false)
+    }
+    fetchUser()
+  }, [])
+
+  if (loading)
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <Spinner />
+      </div>
+    )
 
   const links = [
     { name: 'Dashboard', icon: 'dashboard', href: '/' },
@@ -45,6 +55,20 @@ const Header = ({ children }: Props) => {
     { name: 'Guests', icon: 'guests', href: '/guests' },
     { name: 'Calendars', icon: 'calendars', href: '/calendars' },
     { name: 'Users', icon: 'users', href: '/users' },
+  ]
+
+  const IconMenuItems: IconMenuItem[] = [
+    {
+      icon: (
+        <LogOut className="text-light-300 group-hover:text-light-400" width={20} strokeWidth={1} />
+      ),
+      label: 'Logout',
+      action: async () => {
+        clearTokens()
+        router.push('/login')
+      },
+      divider: false,
+    },
   ]
 
   return (
@@ -77,7 +101,11 @@ const Header = ({ children }: Props) => {
               <ul className="mt-6 space-y-4">
                 {links.map((link: { name: string; icon: string; href: string }) => (
                   <li key={link.name}>
-                    <Link href={link.href} className="flex items-center gap-2 px-2 py-2" onClick={() => setIsMenuOpen(false)}>
+                    <Link
+                      href={link.href}
+                      className="flex items-center gap-2 px-2 py-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
                       <Icon name={link.icon} />
                       <p>{link.name}</p>
                     </Link>
@@ -98,9 +126,7 @@ const Header = ({ children }: Props) => {
             <ul className="flex space-x-10">
               {links.map((link: { name: string; icon: string; href: string }) => (
                 <li key={link.name}>
-                  <Link href={link.href} >
-                    {link.name}
-                  </Link>
+                  <Link href={link.href}>{link.name}</Link>
                 </li>
               ))}
             </ul>
@@ -113,7 +139,73 @@ const Header = ({ children }: Props) => {
               </div>
             </button>
           </Link>
-          <Avatar name="Jp" isBordered color="danger" />
+          <Popover
+            placement="bottom-end"
+            offset={20}
+            classNames={{
+              content: 'p-0',
+            }}
+          >
+            <PopoverTrigger>
+              <div className="flex flex-row items-center gap-2 hover:cursor-pointer">
+                <Avatar
+                  name={toCapitalCase(user?.username || '').slice(0, 1)}
+                  isBordered
+                  color="danger"
+                  size="md"
+                  className="text-lg font-bold"
+                />
+
+                <ChevronDown className="text-secondary-600 dark:text-secondary-50" width={14} />
+              </div>
+            </PopoverTrigger>
+            <PopoverContent className="bg-white min-w-60 rounded-md">
+              <div className="flex w-full flex-col p-2">
+                <div className="flex flex-col items-center px-3 py-1">
+                  <Avatar
+                    name={toCapitalCase(user?.username || '').slice(0, 1)}
+                    isBordered
+                    color="danger"
+                    className="text-lg font-bold"
+                  />
+                  <p className="mt-3 text-small font-medium text-secondary-700 dark:text-secondary-50">
+                    {toCapitalCase(user?.username || '')}
+                  </p>
+                  <div className="mt-2 text-small text-primary-500">
+                    {toCapitalCase(user?.role.toLowerCase() || '')}
+                  </div>
+                </div>
+                {IconMenuItems.map((item, index) => (
+                  <div className="mt-1" key={index}>
+                    {item.divider && (
+                      <Divider className="my-2 bg-secondary-100 dark:bg-secondary-900" />
+                    )}
+                    {item.action ? (
+                      <button
+                        className="duration-100 group flex w-full flex-row items-center space-x-2 px-4 py-2 transition-colors ease-out hover:cursor-pointer hover:bg-secondary-100/75 dark:hover:bg-secondary-900"
+                        onClick={item.action}
+                      >
+                        {item.icon}
+                        <p className="group-hover:text-secondary-950 text-medium text-secondary-800 dark:text-secondary-200 dark:group-hover:text-secondary-50">
+                          {item.label}
+                        </p>
+                      </button>
+                    ) : (
+                      <Link
+                        href={item.link ?? ''}
+                        className="duration-100 group flex w-full flex-row items-center space-x-2 px-4 py-1.5 transition-colors ease-out hover:cursor-pointer hover:bg-secondary-100/75 dark:hover:bg-secondary-900"
+                      >
+                        {item.icon}
+                        <p className="group-hover:text-secondary-950 text-medium text-secondary-800 dark:text-secondary-200 dark:group-hover:text-secondary-50">
+                          {item.label}
+                        </p>
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       {children}

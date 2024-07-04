@@ -21,4 +21,5 @@ export interface Event {
     ageGroup: string
     numberOfAttendees: number
     extraNote: string
+    paidAmount: number
 }

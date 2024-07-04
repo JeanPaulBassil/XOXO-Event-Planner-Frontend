@@ -18,50 +18,22 @@ export abstract class AbstractApi<T> {
   }
 
   private async refreshTokens(refreshToken: string): Promise<string> {
-    try {
-      const response = await fetch(`${baseUrl}auth/refresh`, {
-        cache: 'no-store',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refreshToken }),
-      })
+    const response = await fetch(`${baseUrl}auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken }),
+    })
 
-      if (!response.ok) {
-        const errorBody = await response.json()
-        throw new ServerError(errorBody as ResponseError)
-      }
-
-      const body: Tokens = await response.json()
-      return body.accessToken
-    } catch (error) {
-      if (error instanceof ServerError) {
-        throw error
-      }
-
-      if (error instanceof Error) {
-        throw new ServerError({
-          error: {
-            message: error.message,
-            name: error.name,
-            response: error.message,
-            status: error.name === 'TypeError' ? 500 : 400,
-          },
-          timestamp: new Date().getTime(),
-        })
-      }
-
-      throw new ServerError({
-        error: {
-          message: 'An error occurred while fetching data',
-          name: 'Error',
-          response: 'An error occurred while fetching data',
-          status: 400,
-        },
-        timestamp: new Date().getTime(),
-      })
+    if (!response.ok) {
+      throw new ServerError(await response.json())
     }
+
+    const body = await response.json()
+    const tokens = body.payload
+    Cookies.set('accessToken', tokens.accessToken)
+    return tokens.accessToken
   }
 
   private async fetchWithAuth(url: string, options: RequestInit): Promise<Response> {
@@ -75,20 +47,23 @@ export abstract class AbstractApi<T> {
       }
     }
 
+    if (!accessToken && refreshToken) {
+      const newAccessToken = await this.refreshTokens(refreshToken)
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${newAccessToken}`,
+      }
+    }
+
     let response = await fetch(url, options)
 
-    if (response.status === 401) {
-      if (refreshToken) {
-        const newAccessToken = await this.refreshTokens(refreshToken)
-        Cookies.set('accessToken', newAccessToken)
-        if (newAccessToken) {
-          options.headers = {
-            ...options.headers,
-            Authorization: `Bearer ${newAccessToken}`,
-          }
-          response = await fetch(url, options)
-        }
+    if (response.status === 401 && refreshToken) {
+      const newAccessToken = await this.refreshTokens(refreshToken)
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${newAccessToken}`,
       }
+      response = await fetch(url, options)
     }
 
     return response

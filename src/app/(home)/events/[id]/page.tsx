@@ -3,10 +3,24 @@ import React, { useEffect, useState } from 'react'
 import { useEvents } from '../../contexts/EventContext'
 import { Event } from '@/api/models/Event.model'
 import { toCapitalCase } from '@/utils/string'
-import { Skeleton } from '@nextui-org/react'
-import { Coins, Edit } from 'lucide-react'
+import {
+  Button,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Skeleton,
+  useDisclosure,
+} from '@nextui-org/react'
+import { Coins, DoorClosed, Edit, Plus } from 'lucide-react'
 import { zonedFormatDate } from '@/utils/date'
 import Link from 'next/link'
+import { joiResolver } from '@hookform/resolvers/joi'
+import { useForm, FieldValues } from 'react-hook-form'
+import Joi, { CustomHelpers } from 'joi'
+import toast from 'react-hot-toast'
 
 type Props = {
   params: {
@@ -19,11 +33,13 @@ const easeInOut = (t: number) => {
 }
 
 const Page = ({ params }: Props) => {
-  const { getEvent } = useEvents()
+  const { getEvent, editEvent } = useEvents()
   const [event, setEvent] = useState<Event | undefined>(undefined)
   const [price, setPrice] = useState<number>(0)
   const [deposit, setDeposit] = useState<number>(0)
+  const [paidAmount, setPaidAmount] = useState<number>(0)
   const [remaining, setRemaining] = useState<number>(0)
+  const { isOpen, onOpen, onOpenChange } = useDisclosure()
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -57,7 +73,8 @@ const Page = ({ params }: Props) => {
       if (eventData) {
         animateValue(0, eventData.price, setPrice)
         animateValue(0, eventData.deposit, setDeposit)
-        animateValue(0, eventData.price - eventData.deposit, setRemaining)
+        animateValue(0, eventData.price - eventData.paidAmount, setRemaining)
+        animateValue(0, eventData.paidAmount, setPaidAmount)
       }
     }
     fetchEvent()
@@ -76,8 +93,98 @@ const Page = ({ params }: Props) => {
     }
   }
 
+  const addPaymentSchema = Joi.object({
+    price: Joi.number().required().min(0).max(remaining).messages({
+      'number.base': 'Price must be a number',
+      'number.min': 'Price cannot be negative',
+      'number.max': `Price cannot be greater than the remaining amount (${remaining})`,
+      'any.required': 'Price is required',
+    }),
+  })
+
+  const {
+    handleSubmit,
+    register,
+    setError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<{
+    price: number
+  }>({
+    resolver: joiResolver(addPaymentSchema),
+  })
+
+  const onSubmit = handleSubmit(async (data) => {
+    const newPaidAmount = (event?.paidAmount || 0) + data.price
+
+    if (event && newPaidAmount > event.price) {
+      setError('price', {
+        type: 'manual',
+        message: 'Total paid amount cannot exceed the total price',
+      })
+      return
+    }
+
+    if (event) {
+      await editEvent(Number(params.id), {
+        ...event,
+        paidAmount: newPaidAmount,
+        remaining: event.price - newPaidAmount,
+      })
+
+      toast.success('Payment added successfully')
+      reset()
+      onOpenChange()
+    }
+  })
+
   return (
     <div className="px-3 py-4 md:px-10">
+      <Modal backdrop="blur" isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">Add Payment</ModalHeader>
+              <form onSubmit={onSubmit}>
+                <ModalBody>
+                  <Input
+                    type="number"
+                    isRequired
+                    variant="underlined"
+                    label="Price"
+                    isClearable
+                    className="mt-4 md:max-w-72"
+                    {...register('price')}
+                    isInvalid={!!errors.price}
+                    errorMessage={errors.price?.message}
+                    readOnly={isSubmitting}
+                  />
+                </ModalBody>
+                <ModalFooter>
+                  <Button
+                    color="danger"
+                    radius="sm"
+                    variant="light"
+                    onPress={onClose}
+                    endContent={<DoorClosed size={20} />}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    color="success"
+                    className="text-light-50"
+                    radius="sm"
+                    endContent={<Plus size={20} color="white" />}
+                    type="submit"
+                  >
+                    Add
+                  </Button>
+                </ModalFooter>
+              </form>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
       <div className="flex items-center justify-between">
         {event ? (
           <h1 className="text-3xl font-bold text-light-400">{toCapitalCase(event.title)}</h1>
@@ -93,7 +200,7 @@ const Page = ({ params }: Props) => {
               <Edit size={20} />
             </button>
           </Link>
-          <button className="flex items-center gap-2 rounded-md bg-light-100 p-3">
+          <button className="flex items-center gap-2 rounded-md bg-light-100 p-3" onClick={onOpen}>
             <p className="hidden font-semibold lg:block">Add Payment</p>
             <Coins size={20} />
           </button>
@@ -138,6 +245,16 @@ const Page = ({ params }: Props) => {
           <p className="text-md text-light-300">Deposit</p>
           {event ? (
             <p className="text-md text-light-400">${deposit}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Paid Amount</p>
+          {event ? (
+            <p className="text-md text-light-400">${paidAmount}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>

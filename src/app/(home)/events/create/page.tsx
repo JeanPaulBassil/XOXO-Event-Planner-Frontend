@@ -180,7 +180,6 @@ export default function CreateEventPage() {
 
   const toDateValue = (date: Date) => parseDate(date.toISOString().split('T')[0])
 
-  console.log('errors', errors)
   return (
     <div className="flex h-full w-full flex-grow flex-col items-start text-light-400">
       <div className="px-3 py-4 md:px-10 md:py-8">
