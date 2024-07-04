@@ -159,7 +159,7 @@ const Header = ({ children }: Props) => {
                 <ChevronDown className="text-secondary-600 dark:text-secondary-50" width={14} />
               </div>
             </PopoverTrigger>
-            <PopoverContent className="bg-white min-w-60 rounded-md">
+            <PopoverContent className="bg-light-50 min-w-60 rounded-md">
               <div className="flex w-full flex-col p-2">
                 <div className="flex flex-col items-center px-3 py-1">
                   <Avatar
