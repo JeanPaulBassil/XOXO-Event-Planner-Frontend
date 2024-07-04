@@ -90,7 +90,7 @@ const Header = ({ children }: Props) => {
         <div
           className={`${
             isMenuOpen ? '' : '-translate-x-full'
-          } text-black fixed left-0 top-0 z-20 h-full w-[50%] bg-light-100 transition-transform duration-1000 ease-in-out md:hidden`}
+          } text-black fixed left-0 top-0 z-20 h-full w-[50%] bg-light-100 transition-transform duration-1000 ease-in-out lg:hidden`}
         >
           <div>
             <div className="flex items-center justify-center py-6">
@@ -222,23 +222,6 @@ interface SectionProps {
   form: React.ReactNode
   title: string
   description: string
-}
-
-const Section = (props: SectionProps) => {
-  const { title, description, form } = props
-  return (
-    <div
-      className={`flex flex-col items-center justify-start md:p-8 md:py-16 lg:flex-row lg:items-center`}
-    >
-      {/* Left Part */}
-      <div className={`flex flex-col items-stretch text-center md:w-[350px]`}>
-        <h3 className="text-secondary-950 text-base dark:text-secondary-50">{title}</h3>
-        <p className="mt-0.5 text-wrap text-small text-light-300 lg:w-[90%]">{description}</p>
-      </div>
-      {/* Right Part */}
-      {form}
-    </div>
-  )
 }
 
 export default Header
