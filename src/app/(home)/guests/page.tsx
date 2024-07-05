@@ -1,5 +1,5 @@
 'use client'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { ClientsApi } from '@/api/clients.api'
 import { Client } from '@/api/models/Client.model'
 import { ApiResponse, ServerError } from '@/api/utils'
@@ -70,6 +70,20 @@ const Page = () => {
   const [page, setPage] = React.useState(1)
 
   const hasSearchFilter = Boolean(filterValue)
+
+  useEffect(() => {
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['name', 'actions']))
+      } else {
+        setVisibleColumns(new Set(columns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [])
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === 'all') return columns
@@ -163,8 +177,8 @@ const Page = () => {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu>
-                <DropdownItem startContent={<Edit size={20}/>}>Edit</DropdownItem>
-                <DropdownItem startContent={<Trash size={20}/>}>Delete</DropdownItem>
+                <DropdownItem startContent={<Edit size={20} />}>Edit</DropdownItem>
+                <DropdownItem startContent={<Trash size={20} />}>Delete</DropdownItem>
               </DropdownMenu>
             </Dropdown>
           </div>
