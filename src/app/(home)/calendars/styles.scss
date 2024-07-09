@@ -16,12 +16,16 @@ $rbc-header-bg: #00ff00; // example: change header background color
     padding: 15px 0px;
 }
 
-.rbc-time-view {
-    border: none;
+.rbc-month-view {
+    min-width: 1000px;
 }
 
-.rbc-toolbar {
-  display: none;
+.rbc-time-view {
+    min-width: 1000px;
+}
+
+.rbc-time-view {
+    border: none;
 }
 
 .rbc-btn-group:nth-of-type(1) {

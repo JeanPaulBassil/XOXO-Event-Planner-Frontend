@@ -1,26 +1,35 @@
 'use client'
-import { FC, useState } from 'react'
-import { Calendar, dateFnsLocalizer, Event } from 'react-big-calendar'
-import withDragAndDrop, { withDragAndDropProps } from 'react-big-calendar/lib/addons/dragAndDrop'
-import { format, parse, startOfWeek, getDay, addHours, startOfHour } from 'date-fns'
+import { FC } from 'react'
+import { Calendar, dateFnsLocalizer, Navigate } from 'react-big-calendar'
+import { format, parse, startOfWeek, getDay } from 'date-fns'
 import enUS from 'date-fns/locale/en-US'
 
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import './styles.scss'
 import { Popover, PopoverContent, PopoverTrigger } from '@nextui-org/popover'
-import { Avatar, Button, Card, CardBody, CardFooter, CardHeader } from '@nextui-org/react'
+import {
+  Avatar,
+  Button,
+  ButtonGroup,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Link,
+  Select,
+  SelectItem,
+} from '@nextui-org/react'
+import { useEvents } from '../contexts/EventContext'
+import { Event } from '@/api/models/Event.model'
+import { CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react'
 
 type Props = {}
 
 const locales = {
   'en-US': enUS,
 }
-const endOfHour = (date: Date): Date => addHours(startOfHour(date), 1)
-const now = new Date()
-const start = endOfHour(now)
-const end = addHours(start, 2)
-// The types here are `object`. Strongly consider making them better as removing `locales` caused a fatal error
+
 const localizer = dateFnsLocalizer({
   format,
   parse,
@@ -28,42 +37,30 @@ const localizer = dateFnsLocalizer({
   getDay,
   locales,
 })
-//@ts-ignore
-const DnDCalendar = Calendar
 
 const Page: FC<Props> = (props: Props) => {
-  const [events, setEvents] = useState<Event[]>([
-    {
-      title: 'Learn cool stuff',
-      start,
-      end,
-    },
-  ])
+  const { events } = useEvents()
 
-  const onEventResize: withDragAndDropProps['onEventResize'] = (data) => {
-    const { start, end } = data
-
-    setEvents((currentEvents) => {
-      const firstEvent = {
-        start: new Date(start),
-        end: new Date(end),
-      }
-      return [...currentEvents, firstEvent]
-    })
+  if (!events) {
+    return <div>Loading...</div>
   }
 
-  const onEventDrop: withDragAndDropProps['onEventDrop'] = (data) => {
-    console.log(data)
-  }
+  const calendarEvents = events.map((event) => {
+    const startDate = new Date(event.startDate)
+    const endDate = new Date(event.endDate)
+
+    return {
+      ...event,
+      start: startDate,
+      end: endDate,
+    }
+  })
 
   return (
-    <div className="overflow-x-scroll px-10 py-10">
-      <div className="w-[1000px] lg:w-full">
-        {' '}
-        {/* Set a minimum width as needed */}
-        <DnDCalendar
-          defaultView="week"
-          events={events}
+    <div className="w-screen overflow-x-scroll px-3 py-3 lg:px-10 lg:py-10 scrollbar-hide">
+      <div className="h-[1000px] w-full overflow-y-scroll scrollbar-hide lg:w-full">
+        <Calendar
+          events={calendarEvents}
           localizer={localizer}
           components={{
             header: ({ label }: { label: string }) => {
@@ -81,6 +78,20 @@ const Page: FC<Props> = (props: Props) => {
               return <div></div>
             },
             event: ({ event }: { event: Event }) => {
+              const startDate = new Date(event.startDate)
+              const startMonth = startDate.toLocaleString('default', { month: 'long' })
+              const startDay = startDate.getDate()
+              const startHour = ('0' + startDate.getHours()).slice(-2)
+              const startMinutes = ('0' + startDate.getMinutes()).slice(-2)
+              const startAmPm = startDate.getHours() >= 12 ? 'pm' : 'am'
+
+              const endDate = new Date(event.endDate)
+              const endMonth = endDate.toLocaleString('default', { month: 'long' })
+              const endDay = endDate.getDate()
+              const endHour = ('0' + endDate.getHours()).slice(-2)
+              const endMinutes = ('0' + endDate.getMinutes()).slice(-2)
+              const endAmPm = endDate.getHours() >= 12 ? 'pm' : 'am'
+
               return (
                 <Popover showArrow radius="sm" placement="bottom">
                   <PopoverTrigger>
@@ -94,35 +105,54 @@ const Page: FC<Props> = (props: Props) => {
                             isBordered
                             radius="full"
                             size="md"
-                            src="https://i.pravatar.cc/150?u=a04258114e29026702d"
+                            name={`${event.client?.name}`}
                           />
                           <div className="flex flex-col items-start justify-center">
                             <h4 className="text-small font-semibold leading-none text-default-600">
-                              Zoey Lang
+                              {event.client?.name}
                             </h4>
                             <h5 className="text-small tracking-tight text-default-500">
-                              70 766 858
+                              {event.client?.phone
+                                ? event.client?.phone
+                                : event.client?.email
+                                  ? event.client?.email
+                                  : 'No contact info'}
                             </h5>
                           </div>
                         </div>
-                        <Button color="danger" radius="sm" size="sm" variant="solid">
-                          Event Details
-                        </Button>
+                        <Link href={`/events/${event.id}`}>
+                          <Button color="danger" radius="sm" size="sm" variant="solid">
+                            Event Details
+                          </Button>
+                        </Link>
                       </CardHeader>
                       <CardBody className="px-3 py-0">
                         <p className="pl-px text-small text-default-500">
-                          description of the event that is too long to fit in the card so i put the
-                          three dots...
+                          {event.description.length > 100
+                            ? event.description.slice(0, 100) + '...'
+                            : event.description
+                              ? event.description
+                              : 'No description'}
                         </p>
                       </CardBody>
                       <CardFooter className="gap-3">
                         <div className="flex gap-1">
-                          <p className="text-small font-semibold text-default-600">June 24</p>
-                          <p className="text-small text-default-500">6:00pm</p>
+                          <p className="text-small font-semibold text-default-600">
+                            {startMonth} {startDay}
+                          </p>
+                          <p className="text-small text-default-500">
+                            {startHour}:{startMinutes}
+                            {startAmPm}
+                          </p>
                         </div>
                         <div className="flex gap-1">
-                          <p className="text-small font-semibold text-default-600">June 25</p>
-                          <p className="text-small text-default-500">4:00am</p>
+                          <p className="text-small font-semibold text-default-600">
+                            {endMonth} {endDay}
+                          </p>
+                          <p className="text-small text-default-500">
+                            {endHour}:{endMinutes}
+                            {endAmPm}
+                          </p>
                         </div>
                       </CardFooter>
                     </Card>
@@ -130,7 +160,81 @@ const Page: FC<Props> = (props: Props) => {
                 </Popover>
               )
             },
+            toolbar: (toolbarProps) => {
+              return (
+                <div className="flex items-center justify-between pb-10 w-full">
+                  <ButtonGroup>
+                    <Button
+                      color="danger"
+                      radius="sm"
+                      size="md"
+                      variant="solid"
+                      isIconOnly
+                      onClick={() => toolbarProps.onNavigate(Navigate.PREVIOUS)}
+                    >
+                      <ChevronLeft />
+                    </Button>
+                    <Button
+                      color="danger"
+                      radius="sm"
+                      size="md"
+                      variant="solid"
+                      onClick={() => toolbarProps.onNavigate(Navigate.TODAY)}
+                      isIconOnly
+                    >
+                      <CalendarCheck />
+                    </Button>
+                    <Button
+                      color="danger"
+                      radius="sm"
+                      size="md"
+                      variant="solid"
+                      isIconOnly
+                      onClick={() => toolbarProps.onNavigate(Navigate.NEXT)}
+                    >
+                      <ChevronRight />
+                    </Button>
+                  </ButtonGroup>
+
+                  <div className=" items-center gap-3 hidden lg:flex">
+                    <h3 className="text-lg font-bold text-light-400">{toolbarProps.label}</h3>
+                  </div>
+
+                  <Select
+                    className="w-32"
+                    color="danger"
+                    radius="sm"
+                    defaultSelectedKeys={['month']}
+                    placeholder="Select View"
+                    size="md"
+                    onChange={(event) => {
+                      const value = event.target.value
+                      if (value === 'month') toolbarProps.onView('month')
+                      else if (value === 'week') toolbarProps.onView('week')
+                      else if (value === 'day') toolbarProps.onView('day')
+                      else if (value === 'agenda') toolbarProps.onView('agenda')
+                    }}
+                  >
+                    <SelectItem key="month" value="month">
+                      Month
+                    </SelectItem>
+                    <SelectItem key="week" value="week">
+                      Week
+                    </SelectItem>
+                    <SelectItem key="day" value="day">
+                      Day
+                    </SelectItem>
+                    <SelectItem key="agenda" value="agenda">
+                      Agenda
+                    </SelectItem>
+                  </Select>
+                </div>
+              )
+            },
           }}
+          className="h-full scrollbar"
+          startAccessor="start"
+          endAccessor="end"
         />
       </div>
     </div>

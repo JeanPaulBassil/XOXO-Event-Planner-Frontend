@@ -51,7 +51,7 @@ const Page = ({ params }: Props) => {
         end: number,
         setter: React.Dispatch<React.SetStateAction<number>>
       ) => {
-        const duration = 2000 // Duration in milliseconds
+        const duration = 1000 // Duration in milliseconds
         const startTime = performance.now()
 
         const animate = (currentTime: number) => {
