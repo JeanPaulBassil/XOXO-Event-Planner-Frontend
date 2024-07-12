@@ -78,17 +78,6 @@ const Header = ({ children }: Props) => {
 
   const links = [
     {
-      name: 'Dashboard',
-      icon: (
-        <LayoutDashboard
-          className="text-light-300 group-hover:text-light-400"
-          size={28}
-          strokeWidth={1}
-        />
-      ),
-      href: '/',
-    },
-    {
       name: 'Events',
       icon: (
         <Cake className="text-light-300 group-hover:text-light-400" size={28} strokeWidth={1} />
@@ -107,7 +96,7 @@ const Header = ({ children }: Props) => {
       icon: (
         <Calendar className="text-light-300 group-hover:text-light-400" size={28} strokeWidth={1} />
       ),
-      href: '/calendars',
+      href: '/',
     },
     {
       name: 'Users',

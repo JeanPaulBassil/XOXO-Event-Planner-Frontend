@@ -7,13 +7,14 @@ $rbc-header-bg: #00ff00; // example: change header background color
 
 // Add more custom styles or overrides as needed
 .rbc-event {
-  background-color: #C73838 !important;
+  background-color: transparent !important;
   color: #ffffff;
   border: none
 }
 
 .rbc-header {
     padding: 15px 0px;
+    height: 150px;
 }
 
 .rbc-month-view {
@@ -36,10 +37,6 @@ $rbc-header-bg: #00ff00; // example: change header background color
     }
 }
 
-.rbc-allday-cell {
-    display: none;
-}
-
 .rbc-timeslot-group {
     .rbc-time-slot:nth-last-of-type(1) {
         display: none;
@@ -57,4 +54,8 @@ $rbc-header-bg: #00ff00; // example: change header background color
 
 .rbc-event-label {
     display: none;
+}
+
+.rbc-event {
+    padding: 0px;
 }
