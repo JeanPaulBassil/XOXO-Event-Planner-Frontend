@@ -21,7 +21,7 @@ import {
   SelectItem,
 } from '@nextui-org/react'
 import { useEvents } from './contexts/EventContext'
-import { Event } from '@/api/models/Event.model'
+import { Event as CustomEvent, EventCategory } from '@/api/models/Event.model'
 import { CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { ApiResponse, ServerError } from '@/api/utils'
@@ -42,6 +42,12 @@ const localizer = dateFnsLocalizer({
   locales,
 })
 
+interface ExtendedEvent extends Omit<CustomEvent, 'startDate' | 'endDate'> {
+  start: Date
+  end: Date
+  allDay: boolean
+}
+
 const Page: FC<Props> = (props: Props) => {
   const { events } = useEvents()
   const clientsApi = new ClientsApi()
@@ -55,7 +61,7 @@ const Page: FC<Props> = (props: Props) => {
     return <div>Loading...</div>
   }
 
-  const calendarEvents = events.map((event) => {
+  const calendarEvents: ExtendedEvent[] = events.map((event) => {
     const startDate = new Date(event.startDate)
     const endDate = new Date(event.endDate)
 
@@ -63,11 +69,12 @@ const Page: FC<Props> = (props: Props) => {
       ...event,
       start: startDate,
       end: endDate,
+      allDay: false, // Assuming these are not all-day events
     }
   })
 
   // Add client birthdays as all-day events
-  const birthdayEvents = clients?.payload
+  const birthdayEvents: ExtendedEvent[] = clients?.payload
     .map((client) => {
       if (!client.birthdate) return null
       const birthDate = new Date(client.birthdate)
@@ -77,13 +84,24 @@ const Page: FC<Props> = (props: Props) => {
       const end = new Date(year, birthDate.getMonth(), birthDate.getDate())
 
       return {
+        id: client.id,
         title: `${client.name}'s Birthday`,
         start: start,
         end: end,
         allDay: true,
-      }
+        category: 'birthday' as EventCategory, // Cast to EventCategory
+        price: 0,
+        deposit: 0,
+        remaining: 0,
+        description: '',
+        paidAmount: 0,
+        client: client,
+        ageGroup: '',
+        numberOfAttendees: 0,
+        extraNote: '',
+      } as ExtendedEvent
     })
-    .filter((event) => event !== null) as Event[]
+    .filter((event) => event !== null) as ExtendedEvent[] || []
 
   const allEvents = [...calendarEvents, ...birthdayEvents]
 
@@ -93,6 +111,8 @@ const Page: FC<Props> = (props: Props) => {
         <Calendar
           events={allEvents}
           localizer={localizer}
+          startAccessor="start"
+          endAccessor="end"
           components={{
             header: ({ label }: { label: string }) => {
               const number = label.split(' ')[0]
@@ -108,22 +128,22 @@ const Page: FC<Props> = (props: Props) => {
             timeGutterHeader: () => {
               return <div></div>
             },
-            event: ({ event }: { event: Event }) => {
-              const startDate = new Date(event.startDate)
+            event: ({ event }: { event: ExtendedEvent }) => {
+              const startDate = new Date(event.start)
               const startMonth = startDate.toLocaleString('default', { month: 'long' })
               const startDay = startDate.getDate()
               const startHour = ('0' + startDate.getHours()).slice(-2)
               const startMinutes = ('0' + startDate.getMinutes()).slice(-2)
               const startAmPm = startDate.getHours() >= 12 ? 'pm' : 'am'
 
-              const endDate = new Date(event.endDate)
+              const endDate = new Date(event.end)
               const endMonth = endDate.toLocaleString('default', { month: 'long' })
               const endDay = endDate.getDate()
               const endHour = ('0' + endDate.getHours()).slice(-2)
               const endMinutes = ('0' + endDate.getMinutes()).slice(-2)
               const endAmPm = endDate.getHours() >= 12 ? 'pm' : 'am'
 
-              if (birthdayEvents.includes(event)) {
+              if (event.allDay) {
                 return (
                   <Popover showArrow radius="sm" placement="bottom">
                     <PopoverTrigger>
@@ -301,8 +321,6 @@ const Page: FC<Props> = (props: Props) => {
             },
           }}
           className="scrollbar h-full"
-          startAccessor="start"
-          endAccessor="end"
         />
       </div>
     </div>
