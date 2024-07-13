@@ -63,6 +63,8 @@ const Page: FC<Props> = (props: Props) => {
 
   const calendarEvents: ExtendedEvent[] = events
     .map((event) => {
+      if (!event) return null // Check for null event
+
       const startDate = new Date(event.startDate)
       const endDate = new Date(event.endDate)
 
@@ -79,9 +81,8 @@ const Page: FC<Props> = (props: Props) => {
         allDay: false, // Assuming these are not all-day events
       }
     })
-    .filter((event) => event !== null)
+    .filter((event): event is ExtendedEvent => event !== null) // Type guard to filter out null values
 
-  // Add client birthdays as all-day events
   const birthdayEvents: ExtendedEvent[] =
     (clients?.payload
       .map((client) => {
@@ -110,7 +111,7 @@ const Page: FC<Props> = (props: Props) => {
           extraNote: '',
         } as ExtendedEvent
       })
-      .filter((event) => event !== null) as ExtendedEvent[]) || []
+      .filter((event): event is ExtendedEvent => event !== null) as ExtendedEvent[]) || []
 
   const allEvents = [...calendarEvents, ...birthdayEvents]
 
