@@ -9,53 +9,101 @@ $rbc-header-bg: #00ff00; // example: change header background color
 .rbc-event {
   background-color: transparent !important;
   color: #ffffff;
-  border: none
+  border: none;
 }
 
 .rbc-header {
-    padding: 15px 0px;
-    height: 150px;
+  padding: 15px 0px;
+  height: 150px;
 }
 
 .rbc-month-view {
-    min-width: 1000px;
+  min-width: 1000px;
 }
 
 .rbc-time-view {
-    min-width: 1000px;
+  min-width: 1000px;
 }
 
 .rbc-time-view {
-    border: none;
+  border: none;
 }
 
 .rbc-btn-group:nth-of-type(1) {
-    button {
-        background-color: #C73838;
-        color: white;
-        font-weight: semi-bold;
-    }
+  button {
+    background-color: #c73838;
+    color: white;
+    font-weight: semi-bold;
+  }
+}
+
+.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(1) {
+    display: none;
+  }
+}
+
+.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(2) {
+    display: none;
+  }
+}
+
+.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(3) {
+    display: none;
+  }
+}
+
+.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(4) {
+    display: none;
+  }
+}
+
+.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(5) {
+    display: none;
+  }
+}
+
+.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(6) {
+    display: none;
+  }
+}
+
+.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(7) {
+    display: none;
+  }
+}
+
+.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(8) {
+    display: none;
+  }
 }
 
 .rbc-timeslot-group {
-    .rbc-time-slot:nth-last-of-type(1) {
-        display: none;
-    }
+  .rbc-time-slot:nth-last-of-type(9) {
+    display: none;
+  }
 
-    .rbc-time-slot:nth-of-type(1) {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: #9E7878;
-        padding: 0px 20px;
-        font-size: 14px;
-    }
+  .rbc-time-slot:nth-of-type(1) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #9e7878;
+    padding: 0px 20px;
+    font-size: 14px;
+  }
 }
 
 .rbc-event-label {
-    display: none;
+  display: none;
 }
 
 .rbc-event {
-    padding: 0px;
+  padding: 0px;
 }
