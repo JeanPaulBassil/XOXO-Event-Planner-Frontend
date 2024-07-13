@@ -61,47 +61,56 @@ const Page: FC<Props> = (props: Props) => {
     return <div>Loading...</div>
   }
 
-  const calendarEvents: ExtendedEvent[] = events.map((event) => {
-    const startDate = new Date(event.startDate)
-    const endDate = new Date(event.endDate)
+  const calendarEvents: ExtendedEvent[] = events
+    .map((event) => {
+      const startDate = new Date(event.startDate)
+      const endDate = new Date(event.endDate)
 
-    return {
-      ...event,
-      start: startDate,
-      end: endDate,
-      allDay: false, // Assuming these are not all-day events
-    }
-  })
-
-  // Add client birthdays as all-day events
-  const birthdayEvents: ExtendedEvent[] = clients?.payload
-    .map((client) => {
-      if (!client.birthdate) return null
-      const birthDate = new Date(client.birthdate)
-      const year = new Date().getFullYear() // Use current year for birthday events
-
-      const start = new Date(year, birthDate.getMonth(), birthDate.getDate())
-      const end = new Date(year, birthDate.getMonth(), birthDate.getDate())
+      const startHour = startDate.getHours()
+      const endHour = endDate.getHours()
+      if ((startHour >= 0 && startHour < 8) || (endHour >= 0 && endHour < 8)) {
+        return null
+      }
 
       return {
-        id: client.id,
-        title: `${client.name}'s Birthday`,
-        start: start,
-        end: end,
-        allDay: true,
-        category: 'birthday' as EventCategory, // Cast to EventCategory
-        price: 0,
-        deposit: 0,
-        remaining: 0,
-        description: '',
-        paidAmount: 0,
-        client: client,
-        ageGroup: '',
-        numberOfAttendees: 0,
-        extraNote: '',
-      } as ExtendedEvent
+        ...event,
+        start: startDate,
+        end: endDate,
+        allDay: false, // Assuming these are not all-day events
+      }
     })
-    .filter((event) => event !== null) as ExtendedEvent[] || []
+    .filter((event) => event !== null)
+
+  // Add client birthdays as all-day events
+  const birthdayEvents: ExtendedEvent[] =
+    (clients?.payload
+      .map((client) => {
+        if (!client.birthdate) return null
+        const birthDate = new Date(client.birthdate)
+        const year = new Date().getFullYear() // Use current year for birthday events
+
+        const start = new Date(year, birthDate.getMonth(), birthDate.getDate())
+        const end = new Date(year, birthDate.getMonth(), birthDate.getDate())
+
+        return {
+          id: client.id,
+          title: `${client.name}'s Birthday`,
+          start: start,
+          end: end,
+          allDay: true,
+          category: 'birthday' as EventCategory, // Cast to EventCategory
+          price: 0,
+          deposit: 0,
+          remaining: 0,
+          description: '',
+          paidAmount: 0,
+          client: client,
+          ageGroup: '',
+          numberOfAttendees: 0,
+          extraNote: '',
+        } as ExtendedEvent
+      })
+      .filter((event) => event !== null) as ExtendedEvent[]) || []
 
   const allEvents = [...calendarEvents, ...birthdayEvents]
 
