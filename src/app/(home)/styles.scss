@@ -17,12 +17,16 @@ $rbc-header-bg: #00ff00; // example: change header background color
   height: 150px;
 }
 
-.rbc-month-view {
+.rbc-month-view,
+.rbc-time-view {
   min-width: 1000px;
 }
 
-.rbc-time-view {
-  min-width: 1000px;
+@media (max-width: 768px) {
+  .day-view .rbc-time-view {
+    min-width: unset;
+    width: 100%;
+  }
 }
 
 .rbc-time-view {
@@ -38,48 +42,13 @@ $rbc-header-bg: #00ff00; // example: change header background color
 }
 
 .rbc-time-column {
-  .rbc-timeslot-group:nth-of-type(1) {
-    display: none;
-  }
-}
-
-.rbc-time-column {
-  .rbc-timeslot-group:nth-of-type(2) {
-    display: none;
-  }
-}
-
-.rbc-time-column {
-  .rbc-timeslot-group:nth-of-type(3) {
-    display: none;
-  }
-}
-
-.rbc-time-column {
-  .rbc-timeslot-group:nth-of-type(4) {
-    display: none;
-  }
-}
-
-.rbc-time-column {
-  .rbc-timeslot-group:nth-of-type(5) {
-    display: none;
-  }
-}
-
-.rbc-time-column {
-  .rbc-timeslot-group:nth-of-type(6) {
-    display: none;
-  }
-}
-
-.rbc-time-column {
-  .rbc-timeslot-group:nth-of-type(7) {
-    display: none;
-  }
-}
-
-.rbc-time-column {
+  .rbc-timeslot-group:nth-of-type(1),
+  .rbc-timeslot-group:nth-of-type(2),
+  .rbc-timeslot-group:nth-of-type(3),
+  .rbc-timeslot-group:nth-of-type(4),
+  .rbc-timeslot-group:nth-of-type(5),
+  .rbc-timeslot-group:nth-of-type(6),
+  .rbc-timeslot-group:nth-of-type(7),
   .rbc-timeslot-group:nth-of-type(8) {
     display: none;
   }

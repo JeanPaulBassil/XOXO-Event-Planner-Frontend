@@ -1,6 +1,6 @@
 'use client'
-import { FC } from 'react'
-import { Calendar, dateFnsLocalizer, Navigate } from 'react-big-calendar'
+import { FC, useEffect, useState } from 'react'
+import { Calendar, dateFnsLocalizer, Navigate, View } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import enUS from 'date-fns/locale/en-US'
 
@@ -56,6 +56,29 @@ const Page: FC<Props> = (props: Props) => {
     queryKey: ['clients'],
     queryFn: async () => await clientsApi.getClients(),
   })
+
+  const [defaultView, setDefaultView] = useState<View>('month')
+  const [currentView, setCurrentView] = useState<View>('month')
+
+  useEffect(() => {
+    const updateView = () => {
+      if (window.innerWidth < 768) {
+        setDefaultView('day')
+        setCurrentView('day')
+      } else {
+        setDefaultView('month')
+        setCurrentView('month')
+      }
+    }
+
+    updateView()
+    window.addEventListener('resize', updateView)
+    return () => window.removeEventListener('resize', updateView)
+  }, [])
+
+  const handleViewChange = (view: View) => {
+    setCurrentView(view)
+  }
 
   if (!events || isLoading) {
     return <div>Loading...</div>
@@ -117,12 +140,15 @@ const Page: FC<Props> = (props: Props) => {
 
   return (
     <div className="w-screen overflow-x-scroll px-3 py-3 scrollbar-hide lg:px-10 lg:py-10">
-      <div className="h-[1000px] w-full overflow-y-scroll scrollbar-hide lg:w-full">
+      <div className={`h-[1000px] w-full overflow-y-scroll scrollbar-hide lg:w-full ${currentView === 'day' ? 'day-view' : ''}`}>
         <Calendar
           events={allEvents}
           localizer={localizer}
           startAccessor="start"
           endAccessor="end"
+          defaultView={defaultView}
+          view={currentView}
+          onView={handleViewChange}
           components={{
             header: ({ label }: { label: string }) => {
               const number = label.split(' ')[0]
@@ -302,7 +328,7 @@ const Page: FC<Props> = (props: Props) => {
                     className="w-32"
                     color="danger"
                     radius="sm"
-                    defaultSelectedKeys={['month']}
+                    defaultSelectedKeys={[defaultView]}
                     placeholder="Select View"
                     size="md"
                     onChange={(event) => {

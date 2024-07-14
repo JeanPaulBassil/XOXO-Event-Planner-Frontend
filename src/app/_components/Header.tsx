@@ -122,7 +122,7 @@ const Header = ({ children }: Props) => {
 
   return (
     <div className="overflow-x-hidden text-light-400">
-      <div className="flex w-full items-center justify-between border border-light-100 px-3 py-3 md:px-10">
+      <div className="flex w-full items-center justify-between border border-light-100 py-3">
         <Navbar onMenuOpenChange={setIsMenuOpen} shouldHideOnScroll position='static' maxWidth="full">
           <NavbarContent>
             <NavbarMenuToggle
