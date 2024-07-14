@@ -81,7 +81,7 @@ const Page: FC<Props> = (props: Props) => {
         allDay: false, // Assuming these are not all-day events
       }
     })
-    .filter((event): event is ExtendedEvent => event !== null) // Type guard to filter out null values
+    .filter((event) => event !== null) // Type guard to filter out null values
 
   const birthdayEvents: ExtendedEvent[] =
     (clients?.payload
