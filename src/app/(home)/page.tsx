@@ -61,7 +61,7 @@ const Page: FC<Props> = (props: Props) => {
     return <div>Loading...</div>
   }
 
-  const calendarEvents: ExtendedEvent[] = events
+  const calendarEvents = events
     .map((event) => {
       if (!event) return null // Check for null event
 
@@ -81,7 +81,7 @@ const Page: FC<Props> = (props: Props) => {
         allDay: false, // Assuming these are not all-day events
       }
     })
-    .filter((event) => event !== null) // Type guard to filter out null values
+    .filter((event: ExtendedEvent | null) => event !== null) as ExtendedEvent[] // Type guard to filter out null values
 
   const birthdayEvents: ExtendedEvent[] =
     (clients?.payload
