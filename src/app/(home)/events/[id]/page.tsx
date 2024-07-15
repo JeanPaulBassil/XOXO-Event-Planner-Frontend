@@ -28,10 +28,6 @@ type Props = {
   }
 }
 
-const easeInOut = (t: number) => {
-  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-}
-
 const Page = ({ params }: Props) => {
   const { getEvent, editEvent } = useEvents()
   const [event, setEvent] = useState<Event | undefined>(undefined)
@@ -46,35 +42,11 @@ const Page = ({ params }: Props) => {
       const eventData = await getEvent(Number(params.id))
       setEvent(eventData)
 
-      const animateValue = (
-        start: number,
-        end: number,
-        setter: React.Dispatch<React.SetStateAction<number>>
-      ) => {
-        const duration = 1000 // Duration in milliseconds
-        const startTime = performance.now()
-
-        const animate = (currentTime: number) => {
-          const elapsedTime = currentTime - startTime
-          const t = Math.min(elapsedTime / duration, 1)
-          const easedT = easeInOut(t)
-          const value = start + (end - start) * easedT
-
-          setter(Math.round(value))
-
-          if (t < 1) {
-            requestAnimationFrame(animate)
-          }
-        }
-
-        requestAnimationFrame(animate)
-      }
-
       if (eventData) {
-        animateValue(0, eventData.price, setPrice)
-        animateValue(0, eventData.deposit, setDeposit)
-        animateValue(0, eventData.price - eventData.paidAmount, setRemaining)
-        animateValue(0, eventData.paidAmount, setPaidAmount)
+        setPrice(eventData.price)
+        setDeposit(eventData.deposit)
+        setRemaining(eventData.price - eventData.paidAmount)
+        setPaidAmount(eventData.paidAmount)
       }
     }
     fetchEvent()
