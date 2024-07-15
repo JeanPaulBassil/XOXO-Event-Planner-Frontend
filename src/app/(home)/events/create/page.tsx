@@ -84,8 +84,8 @@ const createEventSchema = Joi.object({
     'any.required': 'Event category is required',
   }),
   price: Joi.number().min(0).required().messages({
-    'number.min': 'Price cannot be negative',
-    'any.required': 'Price is required',
+    'number.min': 'Amount due cannot be negative',
+    'any.required': 'Amount due is required',
   }),
   deposit: Joi.number().min(0).max(Joi.ref('price')).required().messages({
     'number.min': 'Deposit cannot be negative',
@@ -462,7 +462,7 @@ export default function CreateEventPage() {
                 type="number"
                 isRequired
                 variant="underlined"
-                label="Price"
+                label="Amount Due"
                 isClearable
                 className="mt-4 md:max-w-72"
                 {...register('price')}

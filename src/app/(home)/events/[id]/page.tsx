@@ -95,10 +95,10 @@ const Page = ({ params }: Props) => {
 
   const addPaymentSchema = Joi.object({
     price: Joi.number().required().min(0).max(remaining).messages({
-      'number.base': 'Price must be a number',
-      'number.min': 'Price cannot be negative',
-      'number.max': `Price cannot be greater than the remaining amount (${remaining})`,
-      'any.required': 'Price is required',
+      'number.base': 'Amount due must be a number',
+      'number.min': 'Amount due cannot be negative',
+      'number.max': `Amount due cannot be greater than the remaining amount (${remaining})`,
+      'any.required': 'Amount due is required',
     }),
   })
 
@@ -151,7 +151,7 @@ const Page = ({ params }: Props) => {
                     type="number"
                     isRequired
                     variant="underlined"
-                    label="Price"
+                    label="Amount Due"
                     isClearable
                     className="mt-4 md:max-w-72"
                     {...register('price')}
@@ -232,7 +232,7 @@ const Page = ({ params }: Props) => {
           )}
         </div>
         <div className="flex items-center justify-between">
-          <p className="text-md text-light-300">Price</p>
+          <p className="text-md text-light-300">Amount Due</p>
           {event ? (
             <p className="text-md text-light-400">${price}</p>
           ) : (
