@@ -27,6 +27,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ApiResponse, ServerError } from '@/api/utils'
 import { Client } from '@/api/models/Client.model'
 import { ClientsApi } from '@/api/clients.api'
+import { toCapitalCase } from '@/utils/string'
 
 type Props = {}
 
@@ -328,15 +329,13 @@ const Page: FC<Props> = (props: Props) => {
                     className="w-32"
                     color="danger"
                     radius="sm"
-                    defaultSelectedKeys={[defaultView]}
-                    placeholder="Select View"
+                    selectedKeys={currentView}
+                    placeholder={toCapitalCase(currentView)}
                     size="md"
                     onChange={(event) => {
-                      const value = event.target.value
-                      if (value === 'month') toolbarProps.onView('month')
-                      else if (value === 'week') toolbarProps.onView('week')
-                      else if (value === 'day') toolbarProps.onView('day')
-                      // else if (value === 'agenda') toolbarProps.onView('agenda')
+                      const value = event.target.value as View
+                      toolbarProps.onView(value)
+                      setCurrentView(value)
                     }}
                   >
                     <SelectItem key="month" value="month">
@@ -348,9 +347,6 @@ const Page: FC<Props> = (props: Props) => {
                     <SelectItem key="day" value="day">
                       Day
                     </SelectItem>
-                    {/* <SelectItem key="agenda" value="agenda">
-                      Agenda
-                    </SelectItem> */}
                   </Select>
                 </div>
               )
