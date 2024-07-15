@@ -2,7 +2,6 @@
 import React, { ReactElement, useEffect } from 'react'
 import Image from 'next/image'
 import { Avatar } from '@nextui-org/avatar'
-import Icon from './Icon'
 import {
   Button,
   Divider,
@@ -18,18 +17,14 @@ import {
   Link,
   NavbarMenu,
   NavbarMenuItem,
-  menu,
 } from '@nextui-org/react'
 import {
   Cake,
   Calendar,
   ChevronDown,
-  LayoutDashboard,
   LogOut,
-  LucidePlusCircle,
   Menu,
   Plus,
-  PlusCircleIcon,
   PlusIcon,
   Users,
   Users2,
@@ -57,6 +52,7 @@ const Header = ({ children }: Props) => {
   const [user, setUser] = React.useState<DecodedToken | null>(null)
   const router = useRouter()
   const [loading, setLoading] = React.useState(true)
+
   useEffect(() => {
     const fetchUser = async () => {
       const user = await getAuthenticatedUser()
@@ -122,8 +118,8 @@ const Header = ({ children }: Props) => {
 
   return (
     <div className="overflow-x-hidden text-light-400">
-      <div className="flex w-full items-center justify-between border border-light-100 py-3">
-        <Navbar onMenuOpenChange={setIsMenuOpen} shouldHideOnScroll position='static' maxWidth="full">
+      <div className="bg-white fixed top-0 z-50 w-full">
+        <Navbar onMenuOpenChange={setIsMenuOpen} maxWidth="full" className="h-20">
           <NavbarContent>
             <NavbarMenuToggle
               aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
@@ -242,7 +238,7 @@ const Header = ({ children }: Props) => {
               </PopoverContent>
             </Popover>
           </NavbarContent>
-          <NavbarMenu className="h-screen w-screen bg-light-50 px-10 md:px-[70px] py-[50px]">
+          <NavbarMenu className="h-screen w-screen bg-light-50 px-10 py-[50px] md:px-[70px]">
             {links.map((item, index) => (
               <NavbarMenuItem key={`${item}-${index}`}>
                 <Link
@@ -259,7 +255,7 @@ const Header = ({ children }: Props) => {
           </NavbarMenu>
         </Navbar>
       </div>
-      {children}
+      <div className='pt-20'>{children}</div>
     </div>
   )
 }
