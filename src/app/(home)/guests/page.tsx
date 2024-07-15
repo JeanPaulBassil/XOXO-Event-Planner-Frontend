@@ -21,8 +21,9 @@ import {
   TableRow,
 } from '@nextui-org/react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDownIcon, Delete, Edit, Search, SearchIcon, Trash } from 'lucide-react'
+import { ChevronDownIcon, Edit, Search, SearchIcon, Trash } from 'lucide-react'
 import { Selection, SortDescriptor } from '@react-types/shared'
+import { format } from 'date-fns'
 
 const INITIAL_VISIBLE_COLUMNS: (keyof Client | 'actions')[] = [
   'name',
@@ -165,6 +166,12 @@ const Page = () => {
           <div>
             <p className="text-bold">{client.name}</p>
             <p className="text-small text-default-400">{client.email}</p>
+          </div>
+        )
+      case 'birthdate':
+        return (
+          <div>
+            {client.birthdate ? format(new Date(client.birthdate), 'dd-MM-yyyy') : 'No birthday'}
           </div>
         )
       case 'actions':
