@@ -25,13 +25,12 @@ import { ChevronDownIcon, Edit, Search, SearchIcon, Trash } from 'lucide-react'
 import { Selection, SortDescriptor } from '@react-types/shared'
 import { format } from 'date-fns'
 
-const INITIAL_VISIBLE_COLUMNS: (keyof Client | 'actions')[] = [
+const INITIAL_VISIBLE_COLUMNS: (keyof Client)[] = [
   'name',
   'email',
   'phone',
   'address',
   'birthdate',
-  'actions',
 ]
 
 const columns = [
@@ -41,7 +40,6 @@ const columns = [
   { name: 'Phone', uid: 'phone', sortable: true },
   { name: 'Address', uid: 'address', sortable: true },
   { name: 'Birthday', uid: 'birthdate', sortable: true },
-  { name: 'Actions', uid: 'actions', sortable: false },
 ]
 
 const statusColorMap: Record<string, string> = {
@@ -75,7 +73,7 @@ const Page = () => {
   useEffect(() => {
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['name', 'actions']))
+        setVisibleColumns(new Set(['name', 'birthdate']))
       } else {
         setVisibleColumns(new Set(columns.map((c) => c.uid)))
       }
@@ -172,22 +170,6 @@ const Page = () => {
         return (
           <div>
             {client.birthdate ? format(new Date(client.birthdate), 'dd-MM-yyyy') : 'No birthday'}
-          </div>
-        )
-      case 'actions':
-        return (
-          <div className="relative flex items-center justify-end gap-2">
-            <Dropdown>
-              <DropdownTrigger>
-                <Button isIconOnly size="sm" variant="light">
-                  <ChevronDownIcon className="text-default-300" />
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu>
-                <DropdownItem startContent={<Edit size={20} />}>Edit</DropdownItem>
-                <DropdownItem startContent={<Trash size={20} />}>Delete</DropdownItem>
-              </DropdownMenu>
-            </Dropdown>
           </div>
         )
       default:
