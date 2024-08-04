@@ -42,12 +42,14 @@ const Section = (props: SectionProps) => {
   )
 }
 
+//added type of contact person name
 type FormData = {
   clientName: string
   clientBirthday: DateValue
   clientMobile: string
   clientEmail: string
   clientAddress: string
+  contactName: string
   title: string
   category: EventCategory
   price: number
@@ -61,6 +63,7 @@ type FormData = {
   extraNote: string
 }
 
+//added Contact Person name
 const createEventSchema = Joi.object({
   clientName: Joi.string().required().messages({
     'any.required': 'Client name is required',
@@ -77,6 +80,7 @@ const createEventSchema = Joi.object({
       'string.email': 'Invalid email format',
     }),
   clientAddress: Joi.string().optional().allow(''),
+  contactName: Joi.string().optional().allow(''),
   title: Joi.string().required().messages({
     'any.required': 'Event name is required',
   }),
@@ -132,6 +136,7 @@ export default function CreateEventPage() {
     resolver: joiResolver(createEventSchema),
   })
 
+  //added contactPersonName
   const onSubmit = async (data: FormData) => {
     const startDateTime = new Date(
       `${data.dateRange.start.toString()}T${data.startTime.toString()}`
@@ -160,6 +165,7 @@ export default function CreateEventPage() {
           phone: data.clientMobile,
           address: data.clientAddress,
           birthdate: data.clientBirthday ? data.clientBirthday.toString() : null,
+          contactname: data.contactName,
         },
         ageGroup: data.ageGroup,
         numberOfAttendees: data.numberOfAttendees,
@@ -180,6 +186,7 @@ export default function CreateEventPage() {
 
   const toDateValue = (date: Date) => parseDate(date.toISOString().split('T')[0])
 
+  //added input field for contact person name
   return (
     <div className="flex h-full w-full flex-grow flex-col items-start text-light-400">
       <div className="px-3 py-4 md:px-10 md:py-8">
@@ -252,6 +259,18 @@ export default function CreateEventPage() {
                 readOnly={isSubmitting}
                 isInvalid={!!errors.clientMobile}
                 errorMessage={errors.clientMobile?.message}
+                className="mt-4"
+              />
+
+              <Input
+                type="text"
+                variant="underlined"
+                label="Contact Name"
+                isClearable
+                {...register('contactName')}
+                readOnly={isSubmitting}
+                isInvalid={!!errors.contactName}
+                errorMessage={errors.contactName?.message}
                 className="mt-4"
               />
             </div>

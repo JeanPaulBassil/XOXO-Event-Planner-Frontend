@@ -56,6 +56,7 @@ type FormData = {
   clientMobile: string
   clientEmail: string
   clientAddress: string
+  contactName: string
   title: string
   category: EventCategory
   price: number
@@ -85,6 +86,7 @@ const editEventSchema = Joi.object({
       'string.email': 'Invalid email format',
     }),
   clientAddress: Joi.string().optional().allow(''),
+  contactName: Joi.string().optional().allow(''),
   title: Joi.string().required().messages({
     'any.required': 'Event name is required',
   }),
@@ -159,6 +161,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         setValue('clientAddress', eventData?.client?.address || '')
         setValue('clientEmail', eventData?.client?.email || '')
         setValue('clientMobile', eventData?.client?.phone || '')
+        setValue('contactName', eventData?.client?.contactname || '')
         setValue('title', eventData.title)
         setValue('category', eventData.category)
         setValue('price', eventData.price)
@@ -228,6 +231,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
           phone: data.clientMobile,
           address: data.clientAddress,
           birthdate: data.clientBirthday ? `${data.clientBirthday.toString()}T00:00:00Z` : null,
+          contactname: data.contactName,
         },
         ageGroup: data.ageGroup,
         numberOfAttendees: data.numberOfAttendees,
@@ -320,6 +324,17 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 readOnly={isSubmitting}
                 isInvalid={!!errors.clientMobile}
                 errorMessage={errors.clientMobile?.message}
+                className="mt-4"
+              />
+              <Input
+                type="text"
+                variant="underlined"
+                label="Contact Name"
+                isClearable
+                {...register('contactName')}
+                readOnly={isSubmitting}
+                isInvalid={!!errors.contactName}
+                errorMessage={errors.contactName?.message}
                 className="mt-4"
               />
             </div>
