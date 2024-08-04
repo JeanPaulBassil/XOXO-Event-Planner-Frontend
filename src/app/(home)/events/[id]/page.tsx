@@ -65,6 +65,17 @@ const Page = ({ params }: Props) => {
     }
   }
 
+  const location = () => {
+    switch (event?.location) {
+      case 'INDOOR':
+        return 'Indoor'
+      case 'OUTDOOR':
+        return 'Outdoor'
+      default:
+        return 'Other'
+    }
+  }
+
   const addPaymentSchema = Joi.object({
     price: Joi.number().required().min(0).max(remaining).messages({
       'number.base': 'Amount due must be a number',
@@ -200,6 +211,16 @@ const Page = ({ params }: Props) => {
           ) : (
             <Skeleton className="w-[100px] rounded-lg">
               <div className="h-3 w-[100px] rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className='flex items-center justify-between'>
+          <p className='text-md text-light-300'>Location</p>
+          {event ? (
+            <p className='text-md text-light-400'>{location()}</p>
+          ) : (
+            <Skeleton className='w-[100px] rounded-lg'>
+              <div className='h-3 w-[100px] rounded-lg bg-default-200'></div>
             </Skeleton>
           )}
         </div>

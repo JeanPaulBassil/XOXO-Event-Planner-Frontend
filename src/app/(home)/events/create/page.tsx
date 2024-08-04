@@ -1,5 +1,5 @@
 'use client'
-import { EventCategory } from '@/api/models/Event.model'
+import { EventCategory, EventLocation } from '@/api/models/Event.model'
 import { Time, parseDate, CalendarDate } from '@internationalized/date'
 import {
   Autocomplete,
@@ -52,6 +52,7 @@ type FormData = {
   contactName: string
   title: string
   category: EventCategory
+  location: EventLocation
   price: number
   deposit: number
   description: string
@@ -86,6 +87,9 @@ const createEventSchema = Joi.object({
   }),
   category: Joi.string().required().messages({
     'any.required': 'Event category is required',
+  }),
+  location: Joi.string().required().messages({
+    'any.required': 'Event location is required',
   }),
   price: Joi.number().min(0).required().messages({
     'number.min': 'Amount due cannot be negative',
@@ -153,6 +157,7 @@ export default function CreateEventPage() {
       const newEvent = {
         title: data.title,
         category: data.category,
+        location: data.location,
         price: data.price,
         deposit: data.deposit,
         description: data.description,
@@ -393,6 +398,40 @@ export default function CreateEventPage() {
                 isInvalid={!!errors.numberOfAttendees}
                 errorMessage={errors.numberOfAttendees?.message}
                 readOnly={isSubmitting}
+              />
+              <Controller
+                name="location"
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Autocomplete
+                    label="Select Location"
+                    className="mt-4 md:max-w-72"
+                    variant="underlined"
+                    isRequired
+                    value={value}
+                    selectedKey={value ? value.toString() : ''}
+                    onSelectionChange={onChange}
+                    isInvalid={!!errors.location}
+                    errorMessage={errors.location?.message}
+                    onBlur={onBlur}
+                    inputProps={{
+                      classNames: {
+                        base: 'bg-white',
+                        inputWrapper:
+                          "px-1 bg-white shadow-none border-b-3 border-light-200 rounded-none after:content-[''] after:w-0 after:origin-center after:absolute after:left-1/2 after:-translate-x-1/2 after:-bottom-[2px] after:h-[2px] data-[open=true]:after:w-full data-[focus=true]:after:w-full after:bg-light-900 after:transition-width motion-reduce:after:transition-none",
+                        label: 'text-light-300 dark:text-secondary-400 text-small',
+                        input: 'text-secondary-950 dark:text-white',
+                      },
+                    }}
+                  >
+                    <AutocompleteItem key="INDOOR" value="Indoor">
+                      Indoor
+                    </AutocompleteItem>
+                    <AutocompleteItem key="OUTDOOR" value="Outdoor">
+                      Outdoor
+                    </AutocompleteItem>
+                  </Autocomplete>
+                )}
               />
             </div>
           }

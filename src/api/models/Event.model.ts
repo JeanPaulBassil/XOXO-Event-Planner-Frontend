@@ -6,10 +6,16 @@ export enum EventCategory {
     Baptism = 'BAPTISM',
 }
 
+export enum EventLocation {
+    Indoor = 'INDOOR',
+    Outdoor = 'OUTDOOR',
+}
+
 export interface Event {
     id?: number
     title: string
     category: EventCategory
+    location: EventLocation
     price: number
     deposit: number
     remaining: number
