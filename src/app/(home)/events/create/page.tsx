@@ -57,6 +57,7 @@ type FormData = {
   category: EventCategory
   location: EventLocation
   price: number
+  extraKidPrice: number
   deposit: number
   description: string
   dateRange: { start: CalendarDate; end: CalendarDate }
@@ -96,6 +97,10 @@ const createEventSchema = Joi.object({
     'any.required': 'Event location is required',
   }),
   price: Joi.number().min(0).required().messages({
+    'number.min': 'Amount due cannot be negative',
+    'any.required': 'Amount due is required',
+  }),
+  extraKidPrice: Joi.number().min(0).required().messages({
     'number.min': 'Amount due cannot be negative',
     'any.required': 'Amount due is required',
   }),
@@ -166,11 +171,12 @@ export default function CreateEventPage() {
         location: data.location,
         status: status,
         price: data.price,
+        extraKidPrice: data.extraKidPrice,
         deposit: data.deposit,
         description: data.description,
         startDate: startDateTime.toISOString(),
         endDate: endDateTime.toISOString(),
-        remaining: data.price - data.deposit,
+        remaining: data.price + data.extraKidPrice - data.deposit,
         client: {
           name: data.clientName,
           email: data.clientEmail,
@@ -549,6 +555,18 @@ export default function CreateEventPage() {
                 {...register('price')}
                 isInvalid={!!errors.price}
                 errorMessage={errors.price?.message}
+                readOnly={isSubmitting}
+              />
+              <Input 
+                type='number'
+                isRequired
+                variant='underlined'
+                label='Extra Kid Charge'
+                isClearable
+                className='mt-4 md:max-w-72'
+                {...register('extraKidPrice')}
+                isInvalid={!!errors.extraKidPrice}
+                errorMessage={errors.extraKidPrice?.message}
                 readOnly={isSubmitting}
               />
               <Textarea

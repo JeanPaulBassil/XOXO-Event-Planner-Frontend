@@ -135,6 +135,7 @@ const page = () => {
           location: eventData.location,
           status: EventStatus.Confirmed,
           price: eventData.price,
+          extraKidPrice: eventData.extraKidPrice,
           deposit: eventData.deposit,
           description: eventData.description,
           startDate: eventData.startDate,

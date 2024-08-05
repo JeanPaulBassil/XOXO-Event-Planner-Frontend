@@ -48,7 +48,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...newEvent,
         clientId: clientResponse.payload.id,
         paidAmount: newEvent.deposit || 0,
-        remaining: newEvent.price! - (newEvent.deposit || 0),
+        remaining: (newEvent.price! + newEvent.extraKidPrice!) - (newEvent.deposit || 0),
       } as Event)
       return response.payload
     },
@@ -97,11 +97,11 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       console.log("updatedEvent", {
         ...updatedEvent,
-        remaining: updatedEvent.price! - (updatedEvent.paidAmount || 0),
+        remaining: ((updatedEvent.price! + updatedEvent.extraKidPrice!) - (updatedEvent.paidAmount || updatedEvent.deposit!)),
       })
       const response: ApiResponse<Event> = await eventsApi.updateEvent(id, {
         ...updatedEvent,
-        remaining: updatedEvent.price! - (updatedEvent.paidAmount || 0),
+        remaining: ((updatedEvent.price! + updatedEvent.extraKidPrice!) - (updatedEvent.paidAmount || updatedEvent.deposit!)),
       })
       console.log("response", response.payload)
       return response.payload
@@ -114,7 +114,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (previousEvents) {
         queryClient.setQueryData<Event[]>(
           ['events'],
-          previousEvents.map((event) => (event.id === id ? { ...event, ...updatedEvent, remaining: updatedEvent.price! - (updatedEvent.paidAmount || 0) } : event))
+          previousEvents.map((event) => (event.id === id ? { ...event, ...updatedEvent, remaining: (updatedEvent.price! + updatedEvent.extraKidPrice!) - (updatedEvent.paidAmount || 0) } : event))
         )
       }
       return { previousEvents }

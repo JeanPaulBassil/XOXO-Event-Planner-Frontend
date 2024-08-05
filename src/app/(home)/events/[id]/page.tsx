@@ -32,6 +32,7 @@ const Page = ({ params }: Props) => {
   const { getEvent, editEvent } = useEvents()
   const [event, setEvent] = useState<Event | undefined>(undefined)
   const [price, setPrice] = useState<number>(0)
+  const [extraKidPrice, setExtraKidPrice] = useState<number>(0)
   const [deposit, setDeposit] = useState<number>(0)
   const [paidAmount, setPaidAmount] = useState<number>(0)
   const [remaining, setRemaining] = useState<number>(0)
@@ -44,8 +45,9 @@ const Page = ({ params }: Props) => {
 
       if (eventData) {
         setPrice(eventData.price)
+        setExtraKidPrice(eventData.extraKidPrice)
         setDeposit(eventData.deposit)
-        setRemaining(eventData.price - eventData.paidAmount)
+        setRemaining(eventData.price + eventData.extraKidPrice - eventData.paidAmount)
         setPaidAmount(eventData.paidAmount)
       }
     }
@@ -112,7 +114,7 @@ const Page = ({ params }: Props) => {
       await editEvent(Number(params.id), {
         ...event,
         paidAmount: newPaidAmount,
-        remaining: event.price - newPaidAmount,
+        remaining: event.price + event.extraKidPrice - newPaidAmount,
       })
 
       toast.success('Payment added successfully')
@@ -228,6 +230,16 @@ const Page = ({ params }: Props) => {
           <p className="text-md text-light-300">Amount Due</p>
           {event ? (
             <p className="text-md text-light-400">${price}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className='flex items-center justify-between'>
+          <p className='text-md text-light-300'>Extra Kid Charge</p>
+          {event ? (
+            <p className='text-md text-light-400'>${extraKidPrice}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>

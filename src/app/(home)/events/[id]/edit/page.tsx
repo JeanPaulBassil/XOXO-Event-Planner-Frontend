@@ -63,6 +63,7 @@ type FormData = {
   category: EventCategory
   location: EventLocation
   price: number
+  extraKidPrice: number
   deposit: number
   description: string
   dateRange: { start: CalendarDate; end: CalendarDate }
@@ -101,6 +102,10 @@ const editEventSchema = Joi.object({
     'any.required': 'Event category is required',
   }),
   price: Joi.number().min(0).required().messages({
+    'number.min': 'Amount due cannot be negative',
+    'any.required': 'Amount due is required',
+  }),
+  extraKidPrice: Joi.number().min(0).required().messages({
     'number.min': 'Amount due cannot be negative',
     'any.required': 'Amount due is required',
   }),
@@ -174,6 +179,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         setValue('category', eventData.category)
         setValue('location',eventData.location)
         setValue('price', eventData.price)
+        setValue('extraKidPrice', eventData.extraKidPrice)
         setValue('deposit', eventData.deposit)
         setValue('description', eventData.description)
         setValue('dateRange', {
@@ -229,11 +235,12 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         category: data.category,
         location: data.location,
         price: data.price,
+        extraKidPrice: data.extraKidPrice,
         deposit: data.deposit,
         description: data.description,
         startDate: startDateTime.toISOString(),
         endDate: endDateTime.toISOString(),
-        remaining: data.price - data.deposit,
+        remaining: (data.price + data.extraKidPrice) - data.deposit,
         client: {
           id: event.client?.id,
           name: data.clientName,
@@ -613,6 +620,18 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 {...register('price')}
                 isInvalid={!!errors.price}
                 errorMessage={errors.price?.message}
+                readOnly={isSubmitting}
+              />
+              <Input 
+                type='number'
+                isRequired
+                variant='underlined'
+                label='Extra Kid Charge'
+                isClearable
+                className='mt-4 md:max-w-72'
+                {...register('extraKidPrice')}
+                isInvalid={!!errors.extraKidPrice}
+                errorMessage={errors.extraKidPrice?.message}
                 readOnly={isSubmitting}
               />
               <Textarea
