@@ -57,6 +57,7 @@ type FormData = {
   clientEmail: string
   clientAddress: string
   contactName: string
+  school: string
   title: string
   category: EventCategory
   location: EventLocation
@@ -88,6 +89,7 @@ const editEventSchema = Joi.object({
     }),
   clientAddress: Joi.string().optional().allow(''),
   contactName: Joi.string().optional().allow(''),
+  school: Joi.string().optional().allow(''),
   title: Joi.string().required().messages({
     'any.required': 'Event name is required',
   }),
@@ -166,6 +168,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         setValue('clientEmail', eventData?.client?.email || '')
         setValue('clientMobile', eventData?.client?.phone || '')
         setValue('contactName', eventData?.client?.contactname || '')
+        setValue('school', eventData?.client?.school || '')
         setValue('title', eventData.title)
         setValue('category', eventData.category)
         setValue('location',eventData.location)
@@ -238,6 +241,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
           address: data.clientAddress,
           birthdate: data.clientBirthday ? `${data.clientBirthday.toString()}T00:00:00Z` : null,
           contactname: data.contactName,
+          school: data.school,
         },
         ageGroup: data.ageGroup,
         numberOfAttendees: data.numberOfAttendees,
@@ -309,6 +313,17 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 isInvalid={!!errors.clientAddress}
                 errorMessage={errors.clientAddress?.message}
                 readOnly={isSubmitting}
+              />
+              <Input
+                type="text"
+                variant="underlined"
+                label="Client School"
+                isClearable
+                {...register('school')}
+                readOnly={isSubmitting}
+                isInvalid={!!errors.school}
+                errorMessage={errors.school?.message}
+                className="mt-4"
               />
               <Input
                 type="email"

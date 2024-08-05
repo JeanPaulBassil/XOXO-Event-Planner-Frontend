@@ -32,7 +32,8 @@ const INITIAL_VISIBLE_COLUMNS: (keyof Client)[] = [
   'phone',
   'address',
   'birthdate',
-  'contactname'
+  'contactname',
+  'school',
 ]
 
 //added contact name column
@@ -44,6 +45,7 @@ const columns = [
   { name: 'Address', uid: 'address', sortable: true },
   { name: 'Birthday', uid: 'birthdate', sortable: true },
   { name: 'Contact Name', uid: 'contactname', sortable: true},
+  { name: 'School', uid: 'school', sortable: true},
 ]
 
 const statusColorMap: Record<string, string> = {

@@ -6,4 +6,5 @@ export interface Client {
     address: string
     birthdate: string | null
     contactname: string //added contact name
+    school: string
 }

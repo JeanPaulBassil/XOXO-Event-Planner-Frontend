@@ -50,6 +50,7 @@ type FormData = {
   clientEmail: string
   clientAddress: string
   contactName: string
+  school: string
   title: string
   category: EventCategory
   location: EventLocation
@@ -82,6 +83,7 @@ const createEventSchema = Joi.object({
     }),
   clientAddress: Joi.string().optional().allow(''),
   contactName: Joi.string().optional().allow(''),
+  school: Joi.string().optional().allow(''),
   title: Joi.string().required().messages({
     'any.required': 'Event name is required',
   }),
@@ -174,6 +176,7 @@ export default function CreateEventPage() {
           address: data.clientAddress,
           birthdate: data.clientBirthday ? data.clientBirthday.toString() : null,
           contactname: data.contactName,
+          school: data.school,
         },
         ageGroup: data.ageGroup,
         numberOfAttendees: data.numberOfAttendees,
@@ -246,6 +249,17 @@ export default function CreateEventPage() {
                 isInvalid={!!errors.clientAddress}
                 errorMessage={errors.clientAddress?.message}
                 readOnly={isSubmitting}
+              />
+              <Input
+                type="text"
+                variant="underlined"
+                label="Client School"
+                isClearable
+                {...register('school')}
+                readOnly={isSubmitting}
+                isInvalid={!!errors.school}
+                errorMessage={errors.school?.message}
+                className="mt-4"
               />
               <Input
                 type="email"
