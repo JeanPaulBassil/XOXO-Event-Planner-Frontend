@@ -24,7 +24,6 @@ import { joiResolver } from '@hookform/resolvers/joi'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
-import { I18nProvider } from "@react-aria/i18n";
 
 interface SectionProps {
   form: React.ReactNode
