@@ -214,7 +214,7 @@ export default function CreateEventPage() {
               <Input
                 type="text"
                 variant="underlined"
-                label="Client Name"
+                label="Name"
                 isClearable
                 {...register('clientName')}
                 readOnly={isSubmitting}
@@ -228,7 +228,7 @@ export default function CreateEventPage() {
                 control={control}
                 render={({ field: { onChange, onBlur, value } }) => (
                   <DatePicker
-                    label="Client Birthday"
+                    label="Birthday"
                     variant="underlined"
                     className="mt-4"
                     value={value}
@@ -241,7 +241,7 @@ export default function CreateEventPage() {
                 )}
               />
               <Textarea
-                label="Client Address"
+                label="Address"
                 placeholder="Write down the address"
                 variant="underlined"
                 className="mt-4"
@@ -253,7 +253,7 @@ export default function CreateEventPage() {
               <Input
                 type="text"
                 variant="underlined"
-                label="Client School"
+                label="School"
                 isClearable
                 {...register('school')}
                 readOnly={isSubmitting}
@@ -264,7 +264,7 @@ export default function CreateEventPage() {
               <Input
                 type="email"
                 variant="underlined"
-                label="Client Email"
+                label="Email"
                 isClearable
                 {...register('clientEmail')}
                 readOnly={isSubmitting}
@@ -275,7 +275,7 @@ export default function CreateEventPage() {
               <Input
                 type="text"
                 variant="underlined"
-                label="Client Mobile"
+                label="Mobile"
                 isClearable
                 {...register('clientMobile')}
                 readOnly={isSubmitting}
