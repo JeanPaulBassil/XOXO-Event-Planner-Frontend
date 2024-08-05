@@ -309,7 +309,6 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
               />
               <Textarea
                 label="Address"
-                placeholder="Write down the address"
                 variant="underlined"
                 className="mt-4"
                 {...register('clientAddress')}
