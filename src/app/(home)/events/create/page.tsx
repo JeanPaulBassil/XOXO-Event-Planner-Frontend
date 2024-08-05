@@ -5,11 +5,13 @@ import {
   Autocomplete,
   AutocompleteItem,
   Button,
+  DateInput,
   DatePicker,
   DateRangePicker,
   DateValue,
   Divider,
   Input,
+  NextUIProvider,
   Spacer,
   Textarea,
   TimeInput,
@@ -22,6 +24,7 @@ import { joiResolver } from '@hookform/resolvers/joi'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import { Plus } from 'lucide-react'
+import { I18nProvider } from "@react-aria/i18n";
 
 interface SectionProps {
   form: React.ReactNode
@@ -227,6 +230,7 @@ export default function CreateEventPage() {
                 name="clientBirthday"
                 control={control}
                 render={({ field: { onChange, onBlur, value } }) => (
+                  <NextUIProvider locale='en-GB'>
                   <DatePicker
                     label="Birthday"
                     variant="underlined"
@@ -238,6 +242,8 @@ export default function CreateEventPage() {
                     errorMessage={errors.clientBirthday?.message}
                     isReadOnly={isSubmitting}
                   />
+                  </NextUIProvider>
+                  
                 )}
               />
               <Textarea
@@ -469,6 +475,7 @@ export default function CreateEventPage() {
                 }}
                 rules={{ required: 'Date range is required' }}
                 render={({ field: { onChange, onBlur, value } }) => (
+                  <NextUIProvider locale='en-GB'>
                   <DateRangePicker
                     label="Date Range"
                     variant="underlined"
@@ -481,6 +488,7 @@ export default function CreateEventPage() {
                     errorMessage={errors.dateRange?.message}
                     isReadOnly={isSubmitting}
                   />
+                  </NextUIProvider>
                 )}
               />
               <div className="flex">

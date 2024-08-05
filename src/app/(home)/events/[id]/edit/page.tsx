@@ -11,6 +11,7 @@ import {
   DateValue,
   Divider,
   Input,
+  NextUIProvider,
   Spacer,
   Spinner,
   Textarea,
@@ -291,6 +292,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 name="clientBirthday"
                 control={control}
                 render={({ field: { onChange, onBlur, value } }) => (
+                  <NextUIProvider locale='en-GB'>
                   <DatePicker
                     label="Birthday"
                     variant="underlined"
@@ -302,6 +304,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                     errorMessage={errors.clientBirthday?.message}
                     isReadOnly={isSubmitting}
                   />
+                  </NextUIProvider>
                 )}
               />
               <Textarea
@@ -533,7 +536,8 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 }}
                 rules={{ required: 'Date range is required' }}
                 render={({ field: { onChange, onBlur, value } }) => (
-                  <DateRangePicker
+                  <NextUIProvider locale='en-GB'>
+                    <DateRangePicker
                     label="Date Range"
                     variant="underlined"
                     isRequired
@@ -545,6 +549,8 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                     errorMessage={errors.dateRange?.message}
                     isReadOnly={isSubmitting}
                   />
+                  </NextUIProvider>
+                  
                 )}
               />
               <div className="flex">
