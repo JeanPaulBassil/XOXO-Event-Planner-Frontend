@@ -1,5 +1,5 @@
 'use client'
-import { EventCategory } from '@/api/models/Event.model'
+import { EventCategory, EventLocation, EventStatus } from '@/api/models/Event.model'
 import { Time, parseDate, CalendarDate } from '@internationalized/date'
 import {
   Autocomplete,
@@ -42,14 +42,18 @@ const Section = (props: SectionProps) => {
   )
 }
 
+//added type of contact person name
 type FormData = {
   clientName: string
   clientBirthday: DateValue
   clientMobile: string
   clientEmail: string
   clientAddress: string
+  contactName: string
+  school: string
   title: string
   category: EventCategory
+  location: EventLocation
   price: number
   deposit: number
   description: string
@@ -61,6 +65,7 @@ type FormData = {
   extraNote: string
 }
 
+//added Contact Person name
 const createEventSchema = Joi.object({
   clientName: Joi.string().required().messages({
     'any.required': 'Client name is required',
@@ -77,11 +82,16 @@ const createEventSchema = Joi.object({
       'string.email': 'Invalid email format',
     }),
   clientAddress: Joi.string().optional().allow(''),
+  contactName: Joi.string().optional().allow(''),
+  school: Joi.string().optional().allow(''),
   title: Joi.string().required().messages({
     'any.required': 'Event name is required',
   }),
   category: Joi.string().required().messages({
     'any.required': 'Event category is required',
+  }),
+  location: Joi.string().required().messages({
+    'any.required': 'Event location is required',
   }),
   price: Joi.number().min(0).required().messages({
     'number.min': 'Amount due cannot be negative',
@@ -132,6 +142,7 @@ export default function CreateEventPage() {
     resolver: joiResolver(createEventSchema),
   })
 
+  //added contactPersonName
   const onSubmit = async (data: FormData) => {
     const startDateTime = new Date(
       `${data.dateRange.start.toString()}T${data.startTime.toString()}`
@@ -144,10 +155,14 @@ export default function CreateEventPage() {
       return
     }
 
+    const status = EventStatus.Tentative
+
     try {
       const newEvent = {
         title: data.title,
         category: data.category,
+        location: data.location,
+        status: status,
         price: data.price,
         deposit: data.deposit,
         description: data.description,
@@ -160,6 +175,8 @@ export default function CreateEventPage() {
           phone: data.clientMobile,
           address: data.clientAddress,
           birthdate: data.clientBirthday ? data.clientBirthday.toString() : null,
+          contactname: data.contactName,
+          school: data.school,
         },
         ageGroup: data.ageGroup,
         numberOfAttendees: data.numberOfAttendees,
@@ -180,6 +197,7 @@ export default function CreateEventPage() {
 
   const toDateValue = (date: Date) => parseDate(date.toISOString().split('T')[0])
 
+  //added input field for contact person name
   return (
     <div className="flex h-full w-full flex-grow flex-col items-start text-light-400">
       <div className="px-3 py-4 md:px-10 md:py-8">
@@ -233,6 +251,17 @@ export default function CreateEventPage() {
                 readOnly={isSubmitting}
               />
               <Input
+                type="text"
+                variant="underlined"
+                label="Client School"
+                isClearable
+                {...register('school')}
+                readOnly={isSubmitting}
+                isInvalid={!!errors.school}
+                errorMessage={errors.school?.message}
+                className="mt-4"
+              />
+              <Input
                 type="email"
                 variant="underlined"
                 label="Client Email"
@@ -252,6 +281,18 @@ export default function CreateEventPage() {
                 readOnly={isSubmitting}
                 isInvalid={!!errors.clientMobile}
                 errorMessage={errors.clientMobile?.message}
+                className="mt-4"
+              />
+
+              <Input
+                type="text"
+                variant="underlined"
+                label="Contact Name"
+                isClearable
+                {...register('contactName')}
+                readOnly={isSubmitting}
+                isInvalid={!!errors.contactName}
+                errorMessage={errors.contactName?.message}
                 className="mt-4"
               />
             </div>
@@ -374,6 +415,40 @@ export default function CreateEventPage() {
                 isInvalid={!!errors.numberOfAttendees}
                 errorMessage={errors.numberOfAttendees?.message}
                 readOnly={isSubmitting}
+              />
+              <Controller
+                name="location"
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Autocomplete
+                    label="Select Location"
+                    className="mt-4 md:max-w-72"
+                    variant="underlined"
+                    isRequired
+                    value={value}
+                    selectedKey={value ? value.toString() : ''}
+                    onSelectionChange={onChange}
+                    isInvalid={!!errors.location}
+                    errorMessage={errors.location?.message}
+                    onBlur={onBlur}
+                    inputProps={{
+                      classNames: {
+                        base: 'bg-white',
+                        inputWrapper:
+                          "px-1 bg-white shadow-none border-b-3 border-light-200 rounded-none after:content-[''] after:w-0 after:origin-center after:absolute after:left-1/2 after:-translate-x-1/2 after:-bottom-[2px] after:h-[2px] data-[open=true]:after:w-full data-[focus=true]:after:w-full after:bg-light-900 after:transition-width motion-reduce:after:transition-none",
+                        label: 'text-light-300 dark:text-secondary-400 text-small',
+                        input: 'text-secondary-950 dark:text-white',
+                      },
+                    }}
+                  >
+                    <AutocompleteItem key="INDOOR" value="Indoor">
+                      Indoor
+                    </AutocompleteItem>
+                    <AutocompleteItem key="OUTDOOR" value="Outdoor">
+                      Outdoor
+                    </AutocompleteItem>
+                  </Autocomplete>
+                )}
               />
             </div>
           }

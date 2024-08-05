@@ -25,14 +25,18 @@ import { ChevronDownIcon, Edit, Search, SearchIcon, Trash } from 'lucide-react'
 import { Selection, SortDescriptor } from '@react-types/shared'
 import { format } from 'date-fns'
 
+//added contact name
 const INITIAL_VISIBLE_COLUMNS: (keyof Client)[] = [
   'name',
   'email',
   'phone',
   'address',
   'birthdate',
+  'contactname',
+  'school',
 ]
 
+//added contact name column
 const columns = [
   { name: 'Id', uid: 'id', sortable: true },
   { name: 'Name', uid: 'name', sortable: true },
@@ -40,6 +44,8 @@ const columns = [
   { name: 'Phone', uid: 'phone', sortable: true },
   { name: 'Address', uid: 'address', sortable: true },
   { name: 'Birthday', uid: 'birthdate', sortable: true },
+  { name: 'Contact Name', uid: 'contactname', sortable: true},
+  { name: 'School', uid: 'school', sortable: true},
 ]
 
 const statusColorMap: Record<string, string> = {

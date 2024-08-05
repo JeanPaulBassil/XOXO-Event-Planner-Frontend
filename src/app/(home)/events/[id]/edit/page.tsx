@@ -1,5 +1,5 @@
 'use client'
-import { EventCategory } from '@/api/models/Event.model'
+import { EventCategory, EventLocation } from '@/api/models/Event.model'
 import { Time, parseDate } from '@internationalized/date'
 import {
   Autocomplete,
@@ -56,8 +56,11 @@ type FormData = {
   clientMobile: string
   clientEmail: string
   clientAddress: string
+  contactName: string
+  school: string
   title: string
   category: EventCategory
+  location: EventLocation
   price: number
   deposit: number
   description: string
@@ -85,10 +88,15 @@ const editEventSchema = Joi.object({
       'string.email': 'Invalid email format',
     }),
   clientAddress: Joi.string().optional().allow(''),
+  contactName: Joi.string().optional().allow(''),
+  school: Joi.string().optional().allow(''),
   title: Joi.string().required().messages({
     'any.required': 'Event name is required',
   }),
   category: Joi.string().required().messages({
+    'any.required': 'Event category is required',
+  }),
+  location: Joi.string().required().messages({
     'any.required': 'Event category is required',
   }),
   price: Joi.number().min(0).required().messages({
@@ -159,8 +167,11 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         setValue('clientAddress', eventData?.client?.address || '')
         setValue('clientEmail', eventData?.client?.email || '')
         setValue('clientMobile', eventData?.client?.phone || '')
+        setValue('contactName', eventData?.client?.contactname || '')
+        setValue('school', eventData?.client?.school || '')
         setValue('title', eventData.title)
         setValue('category', eventData.category)
+        setValue('location',eventData.location)
         setValue('price', eventData.price)
         setValue('deposit', eventData.deposit)
         setValue('description', eventData.description)
@@ -215,6 +226,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
       const updatedEvent = {
         title: data.title,
         category: data.category,
+        location: data.location,
         price: data.price,
         deposit: data.deposit,
         description: data.description,
@@ -228,6 +240,8 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
           phone: data.clientMobile,
           address: data.clientAddress,
           birthdate: data.clientBirthday ? `${data.clientBirthday.toString()}T00:00:00Z` : null,
+          contactname: data.contactName,
+          school: data.school,
         },
         ageGroup: data.ageGroup,
         numberOfAttendees: data.numberOfAttendees,
@@ -301,6 +315,17 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 readOnly={isSubmitting}
               />
               <Input
+                type="text"
+                variant="underlined"
+                label="Client School"
+                isClearable
+                {...register('school')}
+                readOnly={isSubmitting}
+                isInvalid={!!errors.school}
+                errorMessage={errors.school?.message}
+                className="mt-4"
+              />
+              <Input
                 type="email"
                 variant="underlined"
                 label="Client Email"
@@ -320,6 +345,17 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 readOnly={isSubmitting}
                 isInvalid={!!errors.clientMobile}
                 errorMessage={errors.clientMobile?.message}
+                className="mt-4"
+              />
+              <Input
+                type="text"
+                variant="underlined"
+                label="Contact Name"
+                isClearable
+                {...register('contactName')}
+                readOnly={isSubmitting}
+                isInvalid={!!errors.contactName}
+                errorMessage={errors.contactName?.message}
                 className="mt-4"
               />
             </div>
@@ -443,6 +479,40 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
                 errorMessage={errors.numberOfAttendees?.message}
                 readOnly={isSubmitting}
               />
+              <Controller
+                name="location"
+                control={control}
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Autocomplete
+                    label="Select Location"
+                    className="mt-4 md:max-w-72"
+                    variant="underlined"
+                    isRequired
+                    value={value}
+                    selectedKey={value ? value.toString() : ''}
+                    onSelectionChange={onChange}
+                    isInvalid={!!errors.location}
+                    errorMessage={errors.location?.message}
+                    onBlur={onBlur}
+                    inputProps={{
+                      classNames: {
+                        base: 'bg-white',
+                        inputWrapper:
+                          "px-1 bg-white shadow-none border-b-3 border-light-200 rounded-none after:content-[''] after:w-0 after:origin-center after:absolute after:left-1/2 after:-translate-x-1/2 after:-bottom-[2px] after:h-[2px] data-[open=true]:after:w-full data-[focus=true]:after:w-full after:bg-light-900 after:transition-width motion-reduce:after:transition-none",
+                        label: 'text-light-300 dark:text-secondary-400 text-small',
+                        input: 'text-secondary-950 dark:text-white',
+                      },
+                    }}
+                  >
+                    <AutocompleteItem key="INDOOR" value="Indoor">
+                      Indoor
+                    </AutocompleteItem>
+                    <AutocompleteItem key="OUTDOOR" value="Outdoor">
+                      Outdoor
+                    </AutocompleteItem>
+                  </Autocomplete>
+                )}
+                />
             </div>
           }
         />
