@@ -1,6 +1,6 @@
 'use client'
 import { Input } from '@nextui-org/input'
-import { Search } from 'lucide-react'
+import { Search, Hourglass, CheckCircle2 } from 'lucide-react'
 import React, { useCallback, useEffect } from 'react'
 import { Chip } from '@nextui-org/chip'
 import {
@@ -14,20 +14,24 @@ import {
 } from '@nextui-org/react'
 import { zonedFormatDate } from '@/utils/date'
 import { useEvents } from '../contexts/EventContext'
-import { Event } from '@/api/models/Event.model'
+import { Event, EventStatus } from '@/api/models/Event.model'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 
 type EventInTable = {
   id: number
   title: string
   start: string
   end: string
+  status: string
   action?: string
 }
 
 enum ColumnKeys {
   EVENT = 'event',
   ACTION = 'action',
+  STATUS = 'status',
 }
 
 const chips = ['All', 'Upcoming', 'Past', 'Today']
@@ -43,14 +47,19 @@ const columns = [
     dataIndex: 'action',
     key: ColumnKeys.ACTION,
   },
+  {
+    title: 'Status',
+    dataIndex: 'status',
+    key: ColumnKeys.STATUS,
+  }
 ]
 
 const page = () => {
   const [currentChip, setCurrentChip] = React.useState<string>(chips[0])
   const [searchValue, setSearchValue] = React.useState<string>('')
   const [filteredEvents, setFilteredEvents] = React.useState<EventInTable[]>([])
-
-  const { events, isLoading } = useEvents()
+  const {getEvent, editEvent, events} = useEvents()
+  const router = useRouter()
 
   useEffect(() => {
     if (events) {
@@ -59,6 +68,7 @@ const page = () => {
         title: event.title,
         start: event.startDate,
         end: event.endDate,
+        status: event.status,
         action: 'View',
       }))
       setFilteredEvents(filterEvents(shapedEvents, currentChip, searchValue))
@@ -103,6 +113,7 @@ const page = () => {
           title: event.title,
           start: event.startDate,
           end: event.endDate,
+          status: event.status,
           action: 'View',
         }))
         setFilteredEvents(filterEvents(shapedEvents, chip, searchValue))
@@ -110,6 +121,37 @@ const page = () => {
     },
     [searchValue, filterEvents, events]
   )
+
+  const handleConfirmClick = async (event: EventInTable) => {
+    try {
+      console.log(event.id);
+      const eventData = await getEvent(event.id)
+      console.log(eventData);
+
+      if (eventData) {
+        const updatedEvent = {
+          title: eventData.title,
+          category: eventData.category,
+          location: eventData.location,
+          status: EventStatus.Confirmed,
+          price: eventData.price,
+          deposit: eventData.deposit,
+          description: eventData.description,
+          startDate: eventData.startDate,
+          endDate: eventData.endDate,
+          remaining: eventData.price - eventData.deposit,
+          ageGroup: eventData.ageGroup,
+          numberOfAttendees: eventData.numberOfAttendees,
+          extraNote: eventData.extraNote,
+        }
+        await editEvent(event.id, updatedEvent)
+      router.push('/events')
+      toast.success(`Event ${event.title} confirmed`)
+      }
+    } catch (error){
+      toast.error('Failed to confirm event')
+    }
+  }
 
   const renderCell = React.useCallback((event: EventInTable, columnKey: ColumnKeys) => {
     const cellValue = event[columnKey === ColumnKeys.EVENT ? 'title' : columnKey] as string
@@ -126,11 +168,27 @@ const page = () => {
         )
       case ColumnKeys.ACTION:
         return (
-          <Link href={`/events/${event.id}`}>
-            <Button radius="sm" size="sm" className="bg-light-100 font-medium">
-              {cellValue}
+          <div className='flex items-center gap-2'>
+            <Link href={`/events/${event.id}`}>
+              <Button radius="sm" size="sm" className="bg-light-100 font-medium">
+                {cellValue}
+              </Button>
+            </Link>
+            {event.status === EventStatus.Tentative && (
+              <Button radius='sm' size='sm' className='bg-light-100 font-medium' onClick={() => handleConfirmClick(event)}>
+              Confirm
             </Button>
-          </Link>
+            )}
+          </div>
+          
+        )
+      case ColumnKeys.STATUS:
+        return (
+          event.status === EventStatus.Tentative ? (
+            <Hourglass className="text-light-600" size={24} strokeWidth={3}/>
+          ) : (
+            <CheckCircle2 className='text-light-700' size={24} strokeWidth={3} />
+          )
         )
       default:
         return cellValue
@@ -145,6 +203,7 @@ const page = () => {
         title: event.title,
         start: event.startDate,
         end: event.endDate,
+        status: event.status,
         action: 'View',
       }))
       setFilteredEvents(filterEvents(shapedEvents, currentChip))
@@ -159,6 +218,7 @@ const page = () => {
         title: event.title,
         start: event.startDate,
         end: event.endDate,
+        status: event.status,
         action: 'View',
       }))
       setFilteredEvents(filterEvents(shapedEvents, currentChip, value))

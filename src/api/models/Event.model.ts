@@ -11,11 +11,17 @@ export enum EventLocation {
     Outdoor = 'OUTDOOR',
 }
 
+export enum EventStatus {
+    Tentative = 'TENTATIVE',
+    Confirmed = 'CONFIRMED',
+}
+
 export interface Event {
     id?: number
     title: string
     category: EventCategory
     location: EventLocation
+    status: EventStatus
     price: number
     deposit: number
     remaining: number

@@ -1,5 +1,5 @@
 'use client'
-import { EventCategory, EventLocation } from '@/api/models/Event.model'
+import { EventCategory, EventLocation, EventStatus } from '@/api/models/Event.model'
 import { Time, parseDate, CalendarDate } from '@internationalized/date'
 import {
   Autocomplete,
@@ -153,11 +153,14 @@ export default function CreateEventPage() {
       return
     }
 
+    const status = EventStatus.Tentative
+
     try {
       const newEvent = {
         title: data.title,
         category: data.category,
         location: data.location,
+        status: status,
         price: data.price,
         deposit: data.deposit,
         description: data.description,
