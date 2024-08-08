@@ -23,6 +23,7 @@ export interface Event {
     location: EventLocation
     status: EventStatus
     price: number
+    extraKidPrice: number
     deposit: number
     remaining: number
     description: string

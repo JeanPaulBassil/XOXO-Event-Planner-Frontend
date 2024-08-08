@@ -5,11 +5,13 @@ import {
   Autocomplete,
   AutocompleteItem,
   Button,
+  DateInput,
   DatePicker,
   DateRangePicker,
   DateValue,
   Divider,
   Input,
+  NextUIProvider,
   Spacer,
   Textarea,
   TimeInput,
@@ -55,6 +57,7 @@ type FormData = {
   category: EventCategory
   location: EventLocation
   price: number
+  extraKidPrice: number
   deposit: number
   description: string
   dateRange: { start: CalendarDate; end: CalendarDate }
@@ -94,6 +97,10 @@ const createEventSchema = Joi.object({
     'any.required': 'Event location is required',
   }),
   price: Joi.number().min(0).required().messages({
+    'number.min': 'Amount due cannot be negative',
+    'any.required': 'Amount due is required',
+  }),
+  extraKidPrice: Joi.number().min(0).required().messages({
     'number.min': 'Amount due cannot be negative',
     'any.required': 'Amount due is required',
   }),
@@ -164,11 +171,12 @@ export default function CreateEventPage() {
         location: data.location,
         status: status,
         price: data.price,
+        extraKidPrice: data.extraKidPrice,
         deposit: data.deposit,
         description: data.description,
         startDate: startDateTime.toISOString(),
         endDate: endDateTime.toISOString(),
-        remaining: data.price - data.deposit,
+        remaining: data.price + data.extraKidPrice - data.deposit,
         client: {
           name: data.clientName,
           email: data.clientEmail,
@@ -214,7 +222,7 @@ export default function CreateEventPage() {
               <Input
                 type="text"
                 variant="underlined"
-                label="Client Name"
+                label="Name"
                 isClearable
                 {...register('clientName')}
                 readOnly={isSubmitting}
@@ -227,8 +235,9 @@ export default function CreateEventPage() {
                 name="clientBirthday"
                 control={control}
                 render={({ field: { onChange, onBlur, value } }) => (
+                  <NextUIProvider locale='en-GB'>
                   <DatePicker
-                    label="Client Birthday"
+                    label="Birthday"
                     variant="underlined"
                     className="mt-4"
                     value={value}
@@ -238,11 +247,12 @@ export default function CreateEventPage() {
                     errorMessage={errors.clientBirthday?.message}
                     isReadOnly={isSubmitting}
                   />
+                  </NextUIProvider>
+                  
                 )}
               />
               <Textarea
-                label="Client Address"
-                placeholder="Write down the address"
+                label="Address"
                 variant="underlined"
                 className="mt-4"
                 {...register('clientAddress')}
@@ -253,7 +263,7 @@ export default function CreateEventPage() {
               <Input
                 type="text"
                 variant="underlined"
-                label="Client School"
+                label="School"
                 isClearable
                 {...register('school')}
                 readOnly={isSubmitting}
@@ -264,7 +274,7 @@ export default function CreateEventPage() {
               <Input
                 type="email"
                 variant="underlined"
-                label="Client Email"
+                label="Email"
                 isClearable
                 {...register('clientEmail')}
                 readOnly={isSubmitting}
@@ -275,7 +285,7 @@ export default function CreateEventPage() {
               <Input
                 type="text"
                 variant="underlined"
-                label="Client Mobile"
+                label="Mobile"
                 isClearable
                 {...register('clientMobile')}
                 readOnly={isSubmitting}
@@ -469,6 +479,7 @@ export default function CreateEventPage() {
                 }}
                 rules={{ required: 'Date range is required' }}
                 render={({ field: { onChange, onBlur, value } }) => (
+                  <NextUIProvider locale='en-GB'>
                   <DateRangePicker
                     label="Date Range"
                     variant="underlined"
@@ -481,6 +492,7 @@ export default function CreateEventPage() {
                     errorMessage={errors.dateRange?.message}
                     isReadOnly={isSubmitting}
                   />
+                  </NextUIProvider>
                 )}
               />
               <div className="flex">
@@ -543,6 +555,18 @@ export default function CreateEventPage() {
                 {...register('price')}
                 isInvalid={!!errors.price}
                 errorMessage={errors.price?.message}
+                readOnly={isSubmitting}
+              />
+              <Input 
+                type='number'
+                isRequired
+                variant='underlined'
+                label='Extra Kid Charge'
+                isClearable
+                className='mt-4 md:max-w-72'
+                {...register('extraKidPrice')}
+                isInvalid={!!errors.extraKidPrice}
+                errorMessage={errors.extraKidPrice?.message}
                 readOnly={isSubmitting}
               />
               <Textarea
