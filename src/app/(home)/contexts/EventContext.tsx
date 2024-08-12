@@ -7,11 +7,13 @@ import { ApiResponse } from '@/api/utils/ApiResponse'
 import { ServerError } from '@/api/utils/ResponseError'
 import { ClientsApi } from '@/api/clients.api'
 import { Client } from '@/api/models/Client.model'
+import { ActivitiesApi } from '@/api/activity.api'
+import { Activity } from '@/api/models/Activity.model'
 
 type EventContextType = {
   events: Event[] | undefined
   isLoading: boolean
-  createEvent: (newEvent: Partial<Event>) => Promise<void>
+  createEvent: (newEvent: Partial<Event>, activities: Partial<Activity>[]) => Promise<void>
   getEvent: (id: number) => Promise<Event | undefined>
   editEvent: (id: number, updatedEvent: Partial<Event>) => Promise<void>
 }
@@ -30,6 +32,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const queryClient = useQueryClient()
   const eventsApi = new EventsApi()
   const clientsApi = new ClientsApi()
+  const activitiesApi = new ActivitiesApi()
 
   const { data: events, isLoading } = useQuery<Event[], ServerError>({
     queryKey: ['events'],
@@ -39,8 +42,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     },
   })
 
-  const { mutateAsync: createMutateAsync } = useMutation<Event, ServerError, Partial<Event>>({
-    mutationFn: async (newEvent: Partial<Event>) => {
+  const { mutateAsync: createMutateAsync } = useMutation<Event, ServerError, {newEvent: Partial<Event>; activities: Partial<Activity>[]}>({
+    mutationFn: async ({newEvent, activities}) => {
       const clientResponse: ApiResponse<Client> = await clientsApi.createClient(
         newEvent.client as Client
       )
@@ -50,9 +53,23 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         paidAmount: newEvent.deposit || 0,
         remaining: (newEvent.price! + newEvent.extraKidPrice!) - (newEvent.deposit || 0),
       } as Event)
+
+      for (let activity of activities) {
+        try {
+          let newActivity = {
+            ...activity,
+            eventId: response.payload.id,
+          } as Activity
+
+          await activitiesApi.createActivity(newActivity)
+        } catch (error) {
+          console.error(`Failed to save activity: ${activity.name}`, error);
+        }
+      }
+
       return response.payload
     },
-    onMutate: async (newEvent: Partial<Event>) => {
+    onMutate: async ({newEvent, activities}) => {
       await queryClient.cancelQueries({
         queryKey: ['events'],
       })
@@ -76,8 +93,8 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     },
   })
 
-  const createEvent = async (newEvent: Partial<Event>) => {
-    await createMutateAsync(newEvent)
+  const createEvent = async (newEvent: Partial<Event>, activities: Partial<Activity>[]) => {
+    await createMutateAsync({newEvent, activities})
   }
 
   const getEvent = async (id: number) => {

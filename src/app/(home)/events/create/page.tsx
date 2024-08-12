@@ -10,20 +10,57 @@ import {
   DateRangePicker,
   DateValue,
   Divider,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
   Input,
   NextUIProvider,
+  Pagination,
   Spacer,
+  Spinner,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
   Textarea,
   TimeInput,
+  Table,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  useDisclosure,
+  ModalContent,
+  ModalFooter
 } from '@nextui-org/react'
 import Joi from 'joi'
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useEvents } from '../../contexts/EventContext'
 import { Controller, useForm } from 'react-hook-form'
 import { joiResolver } from '@hookform/resolvers/joi'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
+import { ChevronDownIcon, Plus, PlusIcon, Search, Text, Edit, Trash2 } from 'lucide-react'
+import { ActivitiesApi } from '@/api/activity.api'
+import { useQuery } from '@tanstack/react-query'
+import { ApiResponse, ServerError } from '@/api/utils'
+import { PressEvent, Selection, SortDescriptor } from '@react-types/shared'
+import { toCapitalCase } from '@/utils/string'
+
+const INITIAL_VISIBLE_COLUMNS = [
+  'name',
+  'description',
+  'price',
+  'action',
+]
+
+const columns = [
+  { name: 'Name', uid: 'name', sortable: true},
+  { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Price', uid: 'price', sortable: true},
+  { name: 'Actions', uid: 'action', sortable: false},
+]
 
 interface SectionProps {
   form: React.ReactNode
@@ -31,20 +68,26 @@ interface SectionProps {
   description: string
 }
 
-const Section = (props: SectionProps) => {
-  const { title, description, form } = props
-  return (
-    <div className="mt-10 flex w-full flex-col items-start justify-start p-3 md:p-8 md:py-16 lg:flex-row lg:items-center">
-      <div className="flex w-full flex-col md:w-[350px]">
-        <h3 className="text-secondary-950 text-base dark:text-secondary-50">{title}</h3>
-        <p className="mt-0.5 text-wrap text-small text-light-300 md:w-[90%]">{description}</p>
-      </div>
-      {form}
-    </div>
-  )
+type ActivityInTable = {
+  name: string
+  description: string
+  price: number
+  action?: any[]
 }
 
-//added type of contact person name
+type activityProps = {
+  add: Function
+}
+
+type editActivityProps = {
+  edit: Function
+  activity: ActivityInTable
+}
+
+type activityTableProps = {
+  update: Function
+}
+
 type FormData = {
   clientName: string
   clientBirthday: DateValue
@@ -68,7 +111,17 @@ type FormData = {
   extraNote: string
 }
 
-//added Contact Person name
+const activitySchema = Joi.object({
+  name: Joi.string().required().messages({
+    'any.required': 'Client name is required',
+  }),
+  description: Joi.string().optional().allow(''),
+  price: Joi.number().min(0).required().messages({
+    'number.min': 'Amount due cannot be negative',
+    'any.required': 'Amount due is required',
+  })
+})
+
 const createEventSchema = Joi.object({
   clientName: Joi.string().required().messages({
     'any.required': 'Client name is required',
@@ -134,9 +187,596 @@ const createEventSchema = Joi.object({
   extraNote: Joi.string().optional().allow(''),
 })
 
+const EditFormPopUp = (props: editActivityProps) => {
+  const {isOpen, onOpen, onOpenChange} = useDisclosure();
+  const {
+    handleSubmit,
+    register,
+    setError,
+    reset,
+    control,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<ActivityInTable>({
+    resolver: joiResolver(activitySchema),
+  })
+
+  useEffect(() => {
+    const fetchActivity = () => {
+      setValue('name', props.activity.name);
+      setValue('description', props.activity.description);
+      setValue('price', props.activity.price);
+    }
+
+    fetchActivity();
+  }, [setValue])
+
+  const onSubmit = (data: ActivityInTable, onClose: () => void) => {
+    try {
+      const updatedActivity = {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        action: [<Edit size={16}/>, <Trash2 size={16}/>]
+      }
+
+      props.edit(props.activity.name, updatedActivity);
+      onClose();
+    } catch (error) {
+      toast.error('Failed to update activity')
+      if (error instanceof Error) {
+        setError('root', { message: error.message })
+      }
+    }
+  }
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
+    e.preventDefault();
+    handleSubmit((data) => onSubmit(data, onClose))();
+  }
+
+  return (
+    <>
+      <Button
+        isIconOnly
+        size='sm'
+        onPress={onOpen}
+      >
+        {props.activity.action && props.activity.action[0]}
+      </Button>
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className='flex flex-col gap-1'>
+                Edit Activity
+              </ModalHeader>
+              <form className="w-full">
+              <ModalBody>
+              
+              <Input
+                  type="text"
+                  variant="underlined"
+                  label="Name"
+                  isClearable
+                  {...register('name')}
+                  readOnly={isSubmitting}
+                  isInvalid={!!errors.name}
+                  errorMessage={errors.name?.message}
+                  isRequired={true}
+                  className="mt-4"
+                />
+                <Input
+                  type="text"
+                  variant="underlined"
+                  label="Description"
+                  isClearable
+                  {...register('description')}
+                  readOnly={isSubmitting}
+                  isInvalid={!!errors.description}
+                  errorMessage={errors.description?.message}
+                  className="mt-4"
+                />
+                <Input
+                type="number"
+                isRequired
+                variant="underlined"
+                label="Price"
+                isClearable
+                className="mt-4"
+                {...register('price')}
+                isInvalid={!!errors.price}
+                errorMessage={errors.price?.message}
+                readOnly={isSubmitting}
+              />
+              </ModalBody> 
+              <ModalFooter>
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+                <Button color="primary" onClick={(e) => {
+                handleClick(e, onClose)
+                }}>
+                  Update Activity
+                </Button>
+              
+                
+              </ModalFooter>
+              </form>
+            </>
+          )}
+        </ModalContent>
+      </Modal>  
+    </>
+  )
+}
+
+const FormPopUp = (props: activityProps) => {
+  const {isOpen, onOpen, onOpenChange} = useDisclosure();
+  const {
+    handleSubmit,
+    register,
+    setError,
+    reset,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<ActivityInTable>({
+    resolver: joiResolver(activitySchema),
+  })
+
+  const onSubmit = (data: ActivityInTable, onClose: () => void) => {
+    try {
+      const newActivity = {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        action: [<Edit size={16}/>, <Trash2 size={16}/>]
+      }
+
+      props.add(newActivity);
+      reset();
+      onClose()
+    } catch (error) {
+        toast.error('Failed to create activity')
+        if (error instanceof Error) {
+          setError('root', { message: error.message })
+        }
+    }
+  }
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
+    e.preventDefault();
+    handleSubmit((data) => onSubmit(data, onClose))();
+  }
+
+  return (
+    <>
+      <Button
+        color="danger"
+        radius="sm"
+        size="md"
+        variant="solid"
+        className="text-lg font-medium lg:flex"
+        isIconOnly
+        onPress={onOpen}
+      >
+        <PlusIcon />
+      </Button>
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className='flex flex-col gap-1'>
+                Create Activity
+              </ModalHeader>
+              <form className="w-full">
+              <ModalBody>
+              
+              <Input
+                  type="text"
+                  variant="underlined"
+                  label="Name"
+                  isClearable
+                  {...register('name')}
+                  readOnly={isSubmitting}
+                  isInvalid={!!errors.name}
+                  errorMessage={errors.name?.message}
+                  isRequired={true}
+                  className="mt-4"
+                />
+                <Input
+                  type="text"
+                  variant="underlined"
+                  label="Description"
+                  isClearable
+                  {...register('description')}
+                  readOnly={isSubmitting}
+                  isInvalid={!!errors.description}
+                  errorMessage={errors.description?.message}
+                  className="mt-4"
+                />
+                <Input
+                type="number"
+                isRequired
+                variant="underlined"
+                label="Price"
+                isClearable
+                className="mt-4"
+                {...register('price')}
+                isInvalid={!!errors.price}
+                errorMessage={errors.price?.message}
+                readOnly={isSubmitting}
+              />
+              
+              
+              </ModalBody> 
+              <ModalFooter>
+              
+                <Button color="danger" variant="light" onPress={onClose}>
+                  Close
+                </Button>
+                <Button color="primary" onClick={(e) => {
+                handleClick(e, onClose)
+                }}>
+                  Create Activity
+                </Button>
+              </ModalFooter>
+              </form>
+            </>
+          )}
+        </ModalContent>
+      </Modal>  
+    </>
+  )
+}
+
+const ActivityTable = (props: activityTableProps) => {
+  // const activitiesApi = new ActivitiesApi()
+
+  // const { data: activities, isLoading } = useQuery<ApiResponse<Activity[]>, ServerError>({
+  //   queryKey: ['activities'],
+  //   queryFn: async () => await activitiesApi.getActivities(),
+  // })
+
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'name',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [activitiesInTable, setActivitiesInTable] = React.useState<ActivityInTable[]>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  const addActivity =  (activity: ActivityInTable) => {
+    setActivitiesInTable([...activitiesInTable, activity])
+  }
+
+  // Function to delete an activity by name
+  const deleteActivity = (activityName: string) => {
+    setActivitiesInTable(prevActivities =>
+      prevActivities.filter(activity => activity.name !== activityName)
+    );
+  };
+
+// Function to edit an activity by name
+const editActivity = (activityName: string, updatedActivity: Partial<ActivityInTable>) => {
+  setActivitiesInTable(prevActivities => {
+    const index = prevActivities.findIndex(activity => activity.name === activityName);
+    if (index !== -1) {
+      const updatedActivities = [...prevActivities];
+      updatedActivities[index] = { ...updatedActivities[index], ...updatedActivity };
+      return updatedActivities;
+    }
+    console.log(`Activity with name "${activityName}" not found.`);
+    return prevActivities;
+  });
+};
+
+  useEffect(() => {
+    props.update(activitiesInTable)
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['name', 'price']))
+      } else {
+        setVisibleColumns(new Set(columns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [activitiesInTable])
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return columns
+    return columns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredActivities = [...(activitiesInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredActivities = filteredActivities.filter((activity) =>
+        activity.name.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredActivities
+  }, [activitiesInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof ActivityInTable]
+      const second = b[sortDescriptor.column as keyof ActivityInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((activity: ActivityInTable, columnKey: React.Key) => {
+    const cellValue = activity[columnKey as keyof ActivityInTable]
+    switch (columnKey) {
+      case 'name':
+        return (
+          <div>
+            <p className="text-bold">{activity.name}</p>
+          </div>
+        )
+      case 'price':
+        return (
+          <div>
+            ${activity.price}
+          </div>
+        )
+      case 'action':
+        if (Array.isArray(cellValue)) {
+          return (
+              <div className='flex gap-4'>
+                  <EditFormPopUp edit={editActivity} activity={activity}/>
+                  <Button onClick={() => deleteActivity(activity.name)} isIconOnly size='sm'>{cellValue[1]}</Button>
+              </div>
+          );
+      } else {
+          console.error("Expected 'action' to be an array, but got:", cellValue);
+          return null;
+      }
+      default:
+        return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+              <FormPopUp add={addActivity}/>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {activitiesInTable?.length} activities
+          </span>
+          {/* <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">2</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label> */}
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    // onRowsPerPageChange,
+    activitiesInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No activities found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.name}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const Section = (props: SectionProps) => {
+  const { title, description, form } = props
+  return (
+    <div className="mt-10 flex w-full flex-col items-start justify-start p-3 md:p-8 md:py-16 lg:flex-row lg:items-center">
+      <div className="flex w-full flex-col md:w-[350px]">
+        <h3 className="text-secondary-950 text-base dark:text-secondary-50">{title}</h3>
+        <p className="mt-0.5 text-wrap text-small text-light-300 md:w-[90%]">{description}</p>
+      </div>
+      {form}
+    </div>
+  )
+}
+
 export default function CreateEventPage() {
   const { createEvent } = useEvents()
+  const [activities, setAcitivities] = React.useState<ActivityInTable[]>([])
   const router = useRouter()
+
+  const update = (activities: ActivityInTable[]) => {
+    setAcitivities(activities)
+  }
 
   const {
     handleSubmit,
@@ -149,7 +789,6 @@ export default function CreateEventPage() {
     resolver: joiResolver(createEventSchema),
   })
 
-  //added contactPersonName
   const onSubmit = async (data: FormData) => {
     const startDateTime = new Date(
       `${data.dateRange.start.toString()}T${data.startTime.toString()}`
@@ -165,6 +804,12 @@ export default function CreateEventPage() {
     const status = EventStatus.Tentative
 
     try {
+      let newActivities = activities.map((activity: ActivityInTable) => ({
+        name: activity.name,
+        description: activity.description,
+        price: activity.price
+      }))
+
       const newEvent = {
         title: data.title,
         category: data.category,
@@ -191,7 +836,7 @@ export default function CreateEventPage() {
         extraNote: data.extraNote,
       }
 
-      await createEvent(newEvent)
+      await createEvent(newEvent, newActivities)
       router.push('/events')
       toast.success(`Event ${data.title} created successfully.`)
       reset()
@@ -594,6 +1239,15 @@ export default function CreateEventPage() {
             </div>
           }
         />
+        <Spacer y={2} />
+        <Divider className="bg-light-200" />
+    <div className='mt-10 flex w-full flex-col items-start justify-start p-3 md:p-8 md:py-16 lg:flex-row lg:items-center'>
+      <div className='flex w-full flex-col md:w-[350px]'>
+        <h3 className='text-secondary-950 text-base dark:text-secondary-50'>Activity Information</h3>
+        <p className='mt-0.5 text-wrap text-small text-light-300 md:w-[90%]'>Enter the event activities</p>
+      </div>
+      <ActivityTable update={update}/>
+    </div>
         <div className="flex w-full justify-end gap-5 p-3 md:p-8">
           <Button
             type="button"
