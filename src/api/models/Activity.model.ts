@@ -3,4 +3,6 @@ export interface Activity {
     name: string
     description: string
     price: number
+    event?: Event
+    eventId?: number
 }
