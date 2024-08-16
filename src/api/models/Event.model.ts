@@ -24,6 +24,7 @@ export interface Event {
     status: EventStatus
     price: number
     extraKidPrice: number
+    minimumCharge: number
     deposit: number
     remaining: number
     description: string
