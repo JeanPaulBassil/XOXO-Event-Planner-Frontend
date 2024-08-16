@@ -140,7 +140,7 @@ const page = () => {
           description: eventData.description,
           startDate: eventData.startDate,
           endDate: eventData.endDate,
-          remaining: eventData.price - eventData.deposit,
+          remaining: eventData.remaining,
           ageGroup: eventData.ageGroup,
           numberOfAttendees: eventData.numberOfAttendees,
           extraNote: eventData.extraNote,
