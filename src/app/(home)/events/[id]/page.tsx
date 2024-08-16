@@ -103,6 +103,12 @@ type Props = {
   params: {
     id: string,
   }
+}
+
+type TableProps = {
+  params: {
+    id: string,
+  }
   update?: Function
 }
 
@@ -133,7 +139,7 @@ type ExtraInTable = {
   total?: number
 }
 
-const ActivityTable = (props: Props) => {
+const ActivityTable = (props: TableProps) => {
 
   const activitiesApi = new ActivitiesApi()
 
@@ -445,7 +451,7 @@ const ActivityTable = (props: Props) => {
   )
 }
 
-const OrderTable = (props: Props) => {
+const OrderTable = (props: TableProps) => {
 
   const ordersApi = new OrdersApi()
 
@@ -760,7 +766,7 @@ const OrderTable = (props: Props) => {
   )
 }
 
-const CakeTable = (props: Props) => {
+const CakeTable = (props: TableProps) => {
 
   const cakesApi = new CakesApi()
 
@@ -1067,7 +1073,7 @@ const CakeTable = (props: Props) => {
   )
 }
 
-const ExtraTable = (props: Props) => {
+const ExtraTable = (props: TableProps) => {
 
   const extrasApi = new ExtrasApi()
 
@@ -1375,7 +1381,7 @@ const ExtraTable = (props: Props) => {
   )
 }
 
-const Page = (props: Props) => {
+const Page = ({ params }: Props) => {
   const { getEvent, editEvent } = useEvents()
   const [event, setEvent] = useState<Event | undefined>(undefined)
   const [price, setPrice] = useState<number>(0)
@@ -1392,7 +1398,7 @@ const Page = (props: Props) => {
 
   useEffect(() => {
     const fetchEvent = async () => {
-      const eventData = await getEvent(Number(props.params.id))
+      const eventData = await getEvent(Number(params.id))
       console.log(eventData)
       setEvent(eventData)
 
@@ -1408,7 +1414,7 @@ const Page = (props: Props) => {
   
   
     fetchEvent()
-  }, [props.params.id, getEvent])
+  }, [params.id, getEvent])
 
   const updateActivity = (total: number) => {
     setActivityTotal(total);
@@ -1483,7 +1489,7 @@ const Page = (props: Props) => {
     }
 
     if (event) {
-      await editEvent(Number(props.params.id), {
+      await editEvent(Number(params.id), {
         ...event,
         paidAmount: newPaidAmount,
         remaining: event.price + event.extraKidPrice + event.minimumCharge - newPaidAmount,
@@ -1551,7 +1557,7 @@ const Page = (props: Props) => {
           </Skeleton>
         )}
         <div className="flex items-center gap-4">
-          <Link href={`/events/${props.params.id}/edit`}>
+          <Link href={`/events/${params.id}/edit`}>
             <button className="flex items-center gap-2 rounded-md bg-light-100 p-3">
               <p className="hidden font-semibold lg:block">Edit</p>
               <Edit size={20} />
@@ -1660,13 +1666,13 @@ const Page = (props: Props) => {
         </div>
       </div>
       <h1 className='my-5 text-2xl font-bold'>Activities</h1>
-      <ActivityTable params={props.params} update={updateActivity}/>
+      <ActivityTable params={params} update={updateActivity}/>
       <h1 className='my-5 text-2xl font-bold'>Orders</h1>
-      <OrderTable params={props.params} update={updateOrder}/>
+      <OrderTable params={params} update={updateOrder}/>
       <h1 className='my-5 text-2xl font-bold'>Cakes</h1>
-      <CakeTable params={props.params} update={updateCake}/>
+      <CakeTable params={params} update={updateCake}/>
       <h1 className='my-5 text-2xl font-bold'>Extra Decorations and Themes</h1>
-      <ExtraTable params={props.params} update={updateExtra}/>
+      <ExtraTable params={params} update={updateExtra}/>
       <h1 className="my-5 text-2xl font-bold">Description</h1>
       <div className="text-light-400">
         {event ? (
