@@ -5,27 +5,1374 @@ import { Event } from '@/api/models/Event.model'
 import { toCapitalCase } from '@/utils/string'
 import {
   Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
   Input,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Pagination,
+  Selection,
   Skeleton,
+  SortDescriptor,
+  Table,
+  TableBody,
+  TableCell,
+  TableColumn,
+  TableHeader,
+  TableRow,
   useDisclosure,
 } from '@nextui-org/react'
-import { Coins, DoorClosed, Edit, Plus } from 'lucide-react'
+import { ChevronDownIcon, Coins, DoorClosed, Edit, Plus, Search } from 'lucide-react'
 import { zonedFormatDate } from '@/utils/date'
 import Link from 'next/link'
 import { joiResolver } from '@hookform/resolvers/joi'
 import { useForm, FieldValues } from 'react-hook-form'
 import Joi, { CustomHelpers } from 'joi'
 import toast from 'react-hot-toast'
+import { ActivitiesApi } from '@/api/activity.api'
+import { useQuery } from '@tanstack/react-query'
+import { ApiResponse, ServerError } from '@/api/utils'
+import { Activity } from '@/api/models/Activity.model'
+import { OrdersApi } from '@/api/order.api'
+import { Order } from '@/api/models/Order.model'
+import { CakesApi } from '@/api/cake.api'
+import { Cake } from '@/api/models/Cake.model'
+import { ExtrasApi } from '@/api/extra.api'
+import { Extra } from '@/api/models/Extra.model'
+
+const INITIAL_VISIBLE_COLUMNS = [
+  'name',
+  'description',
+  'price',
+]
+
+const INITIAL_ORDERS_VISIBLE_COLUMNS = [
+  'description',
+  'unit',
+  'unitPrice',
+  'quantity',
+  'total',
+]
+
+const INITIAL_CAKES_VISIBLE_COLUMNS = [
+  'type',
+  'description',
+  'price',
+]
+
+const INITIAL_EXTRAS_VISIBLE_COLUMNS = [
+  'description',
+  'unitPrice',
+  'quantity',
+  'total',
+]
+
+const columns = [
+  { name: 'Name', uid: 'name', sortable: true},
+  { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Price', uid: 'price', sortable: true},
+]
+
+const orderColumns = [
+  { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Unit', uid: 'unit', sortable: true},
+  { name: 'Unit Price', uid: 'unitPrice', sortable: true},
+  { name: 'Quantity', uid: 'quantity', sortable: true},
+  { name: 'Total', uid: 'total', sortable: true},
+]
+
+const cakeColumns = [
+  { name: 'Type', uid: 'type', sortable: true},
+  { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Price', uid: 'price', sortable: true},
+]
+
+const extraColumns = [
+  { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Unit Price', uid: 'unitPrice', sortable: true},
+  { name: 'Quantity', uid: 'quantity', sortable: true},
+  { name: 'Total', uid: 'total', sortable: true},
+]
 
 type Props = {
   params: {
-    id: string
+    id: string,
   }
+  update?: Function
+}
+
+type ActivityInTable = {
+  name: string
+  description: string
+  price: number
+}
+
+type OrderInTable = {
+  description: string
+  unit: string
+  unitPrice: number
+  quantity: number
+  total?: number
+}
+
+type CakeInTable = {
+  type: string
+  description: string
+  price: number
+}
+
+type ExtraInTable = {
+  description: string
+  unitPrice: number
+  quantity: number
+  total?: number
+}
+
+const ActivityTable = (props: Props) => {
+
+  const activitiesApi = new ActivitiesApi()
+
+  const { data: activities, isLoading } = useQuery<ApiResponse<Activity[]>, ServerError>({
+    queryKey: ['activities'],
+    queryFn: async () => await activitiesApi.getActivities(),
+    refetchInterval: 5000
+  })
+
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'name',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [activitiesInTable, setActivitiesInTable] = React.useState<ActivityInTable[]>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  useEffect(() => {
+    console.log(activities?.payload)
+    const filterActivities = async () => {
+      const foundActivity = activities?.payload.filter(
+        (activity) => activity.eventId === Number(props.params.id)
+      );
+    
+      if (foundActivity && foundActivity.length > 0) { // Check for existence before accessing elements
+        const filteredActivities: ActivityInTable[] = foundActivity.map(
+          (activity) => ({
+            name: activity.name, // Assuming these properties exist in activities.payload
+            description: activity.description,
+            price: activity.price,
+          })
+        );
+
+        let totalPrice = filteredActivities.reduce(
+          (sum, activity) => sum + activity.price,
+          0
+        );
+
+        if (props.update) {
+          props.update(totalPrice)
+        }
+
+        setActivitiesInTable(filteredActivities);
+      }
+    };
+  
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['name', 'price']))
+      } else {
+        setVisibleColumns(new Set(columns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    filterActivities();
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [activities, props.params.id])
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return columns
+    return columns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredActivities = [...(activitiesInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredActivities = filteredActivities.filter((activity) =>
+        activity.name.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredActivities
+  }, [activitiesInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof ActivityInTable]
+      const second = b[sortDescriptor.column as keyof ActivityInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(e.target.value))
+    setPage(1)
+  }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((activity: ActivityInTable, columnKey: React.Key) => {
+    const cellValue = activity[columnKey as keyof ActivityInTable]
+    switch (columnKey) {
+      case 'name':
+        return (
+          <div>
+            <p className="text-bold">{activity.name}</p>
+          </div>
+        )
+      case 'price':
+        return (
+          <div>
+            ${activity.price}
+          </div>
+        )
+      default:
+        return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {activitiesInTable?.length} activities
+          </span>
+          <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    onRowsPerPageChange,
+    activitiesInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No activities found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.name}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const OrderTable = (props: Props) => {
+
+  const ordersApi = new OrdersApi()
+
+  const { data: orders, isLoading } = useQuery<ApiResponse<Order[]>, ServerError>({
+    queryKey: ['orders'],
+    queryFn: async () => await ordersApi.getOrders(),
+  })
+
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'unit',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [ordersInTable, setOrdersInTable] = React.useState<OrderInTable[]>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  useEffect(() => {
+    console.log(orders?.payload)
+    const filterOrders = async () => {
+      let foundOrder = orders?.payload.filter((order) => order.eventId === Number(props.params.id));
+  
+      if (foundOrder && foundOrder.length > 0) {
+          const filteredOrder: OrderInTable[] = foundOrder.map((order) => ({
+              unit: order.unit,
+              description: order.description,
+              unitPrice: order.unitPrice,
+              quantity: order.quantity,
+              total: (order.unitPrice * order.quantity)
+          }))
+
+          let totalPrice = filteredOrder.reduce(
+            (sum, order) => sum + order.total!,
+            0
+          );
+  
+          if (props.update) {
+            props.update(totalPrice)
+          }
+  
+          setOrdersInTable(filteredOrder);
+      }
+  };
+  
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['name', 'unitPrice']))
+      } else {
+        setVisibleColumns(new Set(orderColumns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    filterOrders();
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [orders, props.params.id])
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return orderColumns
+    return orderColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredOrders = [...(ordersInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredOrders = filteredOrders.filter((order) =>
+        order.unit.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredOrders
+  }, [ordersInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof OrderInTable]
+      const second = b[sortDescriptor.column as keyof OrderInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(e.target.value))
+    setPage(1)
+  }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((order: OrderInTable, columnKey: React.Key) => {
+    const cellValue = order[columnKey as keyof OrderInTable]
+    switch (columnKey) {
+      case 'unit':
+        return (
+          <div>
+            <p className="text-bold">{order.unit}</p>
+          </div>
+        )
+      case 'unitPrice':
+        return (
+          <div>
+            ${order.unitPrice}
+          </div>
+        )
+      case 'total':
+        return (
+        <div>
+            ${order.total}
+          </div>
+        )
+      default:
+        return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {ordersInTable?.length} orders
+          </span>
+          <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    onRowsPerPageChange,
+    ordersInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No orders found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.unit}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const CakeTable = (props: Props) => {
+
+  const cakesApi = new CakesApi()
+
+  const { data: cakes, isLoading } = useQuery<ApiResponse<Cake[]>, ServerError>({
+    queryKey: ['cakes'],
+    queryFn: async () => await cakesApi.getCakes(),
+  })
+
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_CAKES_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'type',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [cakesInTable, setCakesInTable] = React.useState<CakeInTable[]>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  useEffect(() => {
+    console.log(cakes?.payload)
+    const filterCakes = async () => {
+      let foundCake = cakes?.payload.filter((cake) => cake.eventId === Number(props.params.id));
+  
+      if (foundCake && foundCake.length > 0) {
+          const filteredCake: CakeInTable[] = foundCake.map((cake)=>({
+              type: cake.type,
+              description: cake.description,
+              price: cake.price,
+          }));
+
+          let totalPrice = filteredCake.reduce(
+            (sum, cake) => sum + cake.price,
+            0
+          );
+  
+          if (props.update) {
+            props.update(totalPrice)
+          }
+  
+          setCakesInTable(filteredCake);
+      }
+  };
+  
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['type', 'price']))
+      } else {
+        setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    filterCakes();
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [cakes, props.params.id])
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return cakeColumns
+    return cakeColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredCakes = [...(cakesInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredCakes = filteredCakes.filter((cake) =>
+        cake.type.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredCakes
+  }, [cakesInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof CakeInTable]
+      const second = b[sortDescriptor.column as keyof CakeInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(e.target.value))
+    setPage(1)
+  }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((cake: CakeInTable, columnKey: React.Key) => {
+    const cellValue = cake[columnKey as keyof CakeInTable]
+    switch (columnKey) {
+      case 'type':
+        return (
+          <div>
+            <p className="text-bold">{cake.type}</p>
+          </div>
+        )
+      case 'price':
+        return (
+          <div>
+            ${cake.price}
+          </div>
+        )
+      default:
+        return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {cakesInTable?.length} cakes
+          </span>
+          <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    onRowsPerPageChange,
+    cakesInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No cakes found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.type}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const ExtraTable = (props: Props) => {
+
+  const extrasApi = new ExtrasApi()
+
+  const { data: extras, isLoading } = useQuery<ApiResponse<Extra[]>, ServerError>({
+    queryKey: ['extras'],
+    queryFn: async () => await extrasApi.getExtras(),
+  })
+
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'description',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [extrasInTable, setExtrasInTable] = React.useState<ExtraInTable[]>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  useEffect(() => {
+    console.log(extras?.payload)
+    const filterExtras = async () => {
+      let foundExtra = extras?.payload.filter((extra) => extra.eventId === Number(props.params.id));
+  
+      if (foundExtra && foundExtra.length > 0) {
+          const filteredExtra: ExtraInTable[] = foundExtra.map((extra)=>({
+              quantity: extra.quantity,
+              description: extra.description,
+              unitPrice: extra.unitPrice,
+              total: (extra.unitPrice * extra.quantity)
+          }));
+
+          let totalPrice = filteredExtra.reduce(
+            (sum, extra) => sum + extra.total!,
+            0
+          );
+  
+          if (props.update) {
+            props.update(totalPrice)
+          }
+  
+          setExtrasInTable(filteredExtra);
+      }
+  };
+  
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['description', 'price']))
+      } else {
+        setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    filterExtras();
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [extras, props.params.id])
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return extraColumns
+    return extraColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredExtras = [...(extrasInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredExtras = filteredExtras.filter((extra) =>
+        extra.description.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredExtras
+  }, [extrasInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof ExtraInTable]
+      const second = b[sortDescriptor.column as keyof ExtraInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(e.target.value))
+    setPage(1)
+  }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((extra: ExtraInTable, columnKey: React.Key) => {
+    const cellValue = extra[columnKey as keyof ExtraInTable]
+    switch (columnKey) {
+      case 'unitPrice':
+        return (
+          <div>
+            ${extra.unitPrice}
+          </div>
+        )
+      case 'total':
+        return (
+        <div>
+            ${extra.total}
+          </div>
+        )
+      default:
+        return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {extrasInTable?.length} extras
+          </span>
+          <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    // onRowsPerPageChange,
+    extrasInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No extras found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.description}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
 }
 
 const Page = ({ params }: Props) => {
@@ -36,23 +1383,48 @@ const Page = ({ params }: Props) => {
   const [deposit, setDeposit] = useState<number>(0)
   const [paidAmount, setPaidAmount] = useState<number>(0)
   const [remaining, setRemaining] = useState<number>(0)
+  const [minimumCharge, setMinimumCharge] = useState<number>(0)
+  const [activityTotal, setActivityTotal] = useState<number>(0)
+  const [orderTotal, setOrderTotal] = useState<number>(0)
+  const [cakeTotal, setCakeTotal] = useState<number>(0)
+  const [extraTotal, setExtraTotal] = useState<number>(0)
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
 
   useEffect(() => {
     const fetchEvent = async () => {
       const eventData = await getEvent(Number(params.id))
+      console.log(eventData)
       setEvent(eventData)
 
       if (eventData) {
         setPrice(eventData.price)
         setExtraKidPrice(eventData.extraKidPrice)
         setDeposit(eventData.deposit)
-        setRemaining(eventData.price + eventData.extraKidPrice - eventData.paidAmount)
+        setRemaining(eventData.remaining)
         setPaidAmount(eventData.paidAmount)
+        setMinimumCharge(eventData.minimumCharge)
       }
     }
+  
+  
     fetchEvent()
   }, [params.id, getEvent])
+
+  const updateActivity = (total: number) => {
+    setActivityTotal(total);
+  }
+
+  const updateOrder = (total: number) => {
+    setOrderTotal(total);
+  }
+
+  const updateCake = (total: number) => {
+    setCakeTotal(total);
+  }
+
+  const updateExtra = (total: number) => {
+    setExtraTotal(total);
+  }
 
   const category = () => {
     switch (event?.category) {
@@ -114,7 +1486,7 @@ const Page = ({ params }: Props) => {
       await editEvent(Number(params.id), {
         ...event,
         paidAmount: newPaidAmount,
-        remaining: event.price + event.extraKidPrice - newPaidAmount,
+        remaining: event.price + event.extraKidPrice + event.minimumCharge - newPaidAmount,
       })
 
       toast.success('Payment added successfully')
@@ -246,6 +1618,16 @@ const Page = ({ params }: Props) => {
             </Skeleton>
           )}
         </div>
+        <div className='flex items-center justify-between'>
+          <p className='text-md text-light-300'>Minimum Charge</p>
+          {event ? (
+            <p className='text-md text-light-400'>${minimumCharge}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
         <div className="flex items-center justify-between">
           <p className="text-md text-light-300">Deposit</p>
           {event ? (
@@ -277,6 +1659,14 @@ const Page = ({ params }: Props) => {
           )}
         </div>
       </div>
+      <h1 className='my-5 text-2xl font-bold'>Activities</h1>
+      <ActivityTable params={params} update={updateActivity}/>
+      <h1 className='my-5 text-2xl font-bold'>Orders</h1>
+      <OrderTable params={params} update={updateOrder}/>
+      <h1 className='my-5 text-2xl font-bold'>Cakes</h1>
+      <CakeTable params={params} update={updateCake}/>
+      <h1 className='my-5 text-2xl font-bold'>Extra Decorations and Themes</h1>
+      <ExtraTable params={params} update={updateExtra}/>
       <h1 className="my-5 text-2xl font-bold">Description</h1>
       <div className="text-light-400">
         {event ? (
@@ -318,6 +1708,79 @@ const Page = ({ params }: Props) => {
             </Skeleton>
           </div>
         )}
+      </div>
+      <h1 className="my-5 text-2xl font-bold">Grand Total</h1>
+      <div className="flex flex-col gap-5">
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Activities Total Price</p>
+          {activityTotal ? (
+            <p className="text-md text-light-400">${activityTotal}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className='flex items-center justify-between'>
+          <p className='text-md text-light-300'>Orders Total Price</p>
+          {orderTotal ? (
+            <p className='text-md text-light-400'>${orderTotal}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Cakes Total Price</p>
+          {cakeTotal ? (
+            <p className="text-md text-light-400">${cakeTotal}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className='flex items-center justify-between'>
+          <p className='text-md text-light-300'>Decorations and Themes Total Price</p>
+          {extraTotal ? (
+            <p className='text-md text-light-400'>${extraTotal}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Event Amount</p>
+          {event ? (
+            <p className="text-md text-light-400">${extraKidPrice + minimumCharge + price}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Paid Amount</p>
+          {event ? (
+            <p className="text-md text-light-400">${paidAmount}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Grand Total</p>
+          {event ? (
+            <p className="text-md text-light-400">${(activityTotal + orderTotal + cakeTotal + extraTotal + extraKidPrice + minimumCharge + price) - paidAmount}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
       </div>
     </div>
   )
