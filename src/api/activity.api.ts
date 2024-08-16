@@ -40,4 +40,15 @@ export class ActivitiesApi extends AbstractApi<Activity> {
 
         return response
     }
+
+    async deleteActivity(id: number): Promise<ApiResponse<Activity>> {
+        const response : ApiResponse<Activity> = (await this.doFetch({
+            requestOptions: {
+                method: 'DELETE',
+            },
+            pathExtension: id.toString(),
+        })) as ApiResponse<Activity>
+
+        return response
+    }
 }
