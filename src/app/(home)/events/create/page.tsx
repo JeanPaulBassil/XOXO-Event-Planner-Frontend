@@ -34,8 +34,8 @@ import {
   ModalContent,
   ModalFooter
 } from '@nextui-org/react'
-import Joi from 'joi'
-import React, { useEffect } from 'react'
+import Joi, { number } from 'joi'
+import React, { useEffect, useState } from 'react'
 import { useEvents } from '../../contexts/EventContext'
 import { Controller, useForm } from 'react-hook-form'
 import { joiResolver } from '@hookform/resolvers/joi'
@@ -47,18 +47,72 @@ import { useQuery } from '@tanstack/react-query'
 import { ApiResponse, ServerError } from '@/api/utils'
 import { PressEvent, Selection, SortDescriptor } from '@react-types/shared'
 import { toCapitalCase } from '@/utils/string'
+import { Activity, ActivityType } from '@/api/models/Activity.model'
+import { Extra, ExtraType } from '@/api/models/Extra.model'
+import { Order, OrderType, UnitType } from '@/api/models/Order.model'
+import { Cake, CakeDescription } from '@/api/models/Cake.model'
 
 const INITIAL_VISIBLE_COLUMNS = [
-  'name',
   'description',
   'price',
   'action',
 ]
 
+const INITIAL_ORDERS_VISIBLE_COLUMNS = [
+  'description',
+  'unit',
+  'unitPrice',
+  'quantity',
+  'total',
+  'action'
+]
+
+const INITIAL_CAKES_VISIBLE_COLUMNS = [
+  'description',
+  'type',
+  'unitPrice',
+  'quantity',
+  'total',
+  'action',
+]
+
+const INITIAL_EXTRAS_VISIBLE_COLUMNS = [
+  'description',
+  'unitPrice',
+  'quantity',
+  'total',
+  'action'
+]
+
 const columns = [
-  { name: 'Name', uid: 'name', sortable: true},
   { name: 'Description', uid: 'description', sortable: true},
   { name: 'Price', uid: 'price', sortable: true},
+  { name: 'Actions', uid: 'action', sortable: false},
+]
+
+const orderColumns = [
+  { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Unit', uid: 'unit', sortable: true},
+  { name: 'Unit Price', uid: 'unitPrice', sortable: true},
+  { name: 'Quantity', uid: 'quantity', sortable: true},
+  { name: 'Total', uid: 'total', sortable: true},
+  { name: 'Actions', uid: 'action', sortable: false},
+]
+
+const cakeColumns = [
+  { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Type', uid: 'type', sortable: true},
+  { name: 'Unit Price', uid: 'unitPrice', sortable: true},
+  { name: 'Quantity', uid: 'quantity', sortable: true},
+  { name: 'Total', uid: 'total', sortable: true},
+  { name: 'Actions', uid: 'action', sortable: false},
+]
+
+const extraColumns = [
+  { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Unit Price', uid: 'unitPrice', sortable: true},
+  { name: 'Quantity', uid: 'quantity', sortable: true},
+  { name: 'Total', uid: 'total', sortable: true},
   { name: 'Actions', uid: 'action', sortable: false},
 ]
 
@@ -69,22 +123,54 @@ interface SectionProps {
 }
 
 type ActivityInTable = {
-  name: string
-  description: string
+  description: ActivityType
   price: number
+  action?: string
+  isEnabled: boolean
+}
+
+type OrderInTable = {
+  description: OrderType
+  unit: UnitType | undefined
+  unitPrice: number
+  quantity: number
+  total?: number
   action?: any[]
+  isEnabled: boolean
 }
 
-type activityProps = {
-  add: Function
+type CakeInTable = {
+  type: string
+  description: CakeDescription
+  unitPrice: number
+  quantity: number
+  total?: number
+  action?: any[]
+  isEnabled: boolean
 }
 
-type editActivityProps = {
-  edit: Function
-  activity: ActivityInTable
+type ExtraInTable = {
+  description: ExtraType
+  unitPrice: number
+  quantity: number
+  total?: number
+  action?: any[]
+  isEnabled: boolean
 }
 
-type activityTableProps = {
+type ActivityTableProps = {
+  update: Function
+}
+
+type orderTableProps = {
+  update: Function
+}
+
+type cakeTableProps = {
+  update: Function
+}
+
+type extraTableProps = {
   update: Function
 }
 
@@ -101,6 +187,7 @@ type FormData = {
   location: EventLocation
   price: number
   extraKidPrice: number
+  minimumCharge: number
   deposit: number
   description: string
   dateRange: { start: CalendarDate; end: CalendarDate }
@@ -112,13 +199,45 @@ type FormData = {
 }
 
 const activitySchema = Joi.object({
-  name: Joi.string().required().messages({
-    'any.required': 'Client name is required',
-  }),
-  description: Joi.string().optional().allow(''),
   price: Joi.number().min(0).required().messages({
-    'number.min': 'Amount due cannot be negative',
-    'any.required': 'Amount due is required',
+    'number.min': 'Activity price cannot be negative',
+    'any.required': 'Activity price is required',
+  })
+})
+
+const orderSchema = Joi.object({
+  unitPrice: Joi.number().min(0).required().messages({
+    'number.min': 'Order price cannot be negative',
+    'any.required': 'Order price is required',
+  }),
+  quantity: Joi.number().min(1).required().messages({
+    'number.min': 'Order quantity cannot be less than one',
+    'any.required': 'Order price is required',
+  })
+})
+
+const cakeSchema = Joi.object({
+  type: Joi.string().required().messages({
+    'any.required': 'Cake type is required',
+  }),
+  unitPrice: Joi.number().min(0).required().messages({
+    'number.min': 'Order price cannot be negative',
+    'any.required': 'Order price is required',
+  }),
+  quantity: Joi.number().min(1).required().messages({
+    'number.min': 'Order quantity cannot be less than one',
+    'any.required': 'Order price is required',
+  })
+})
+
+const extraSchema = Joi.object({
+  unitPrice: Joi.number().min(0).required().messages({
+    'number.min': 'Extra price cannot be negative',
+    'any.required': 'Extra price is required',
+  }),
+  quantity: Joi.number().min(1).required().messages({
+    'number.min': 'Extra quantity cannot be less than one',
+    'any.required': 'Extra quantity is required',
   })
 })
 
@@ -157,9 +276,20 @@ const createEventSchema = Joi.object({
     'number.min': 'Amount due cannot be negative',
     'any.required': 'Amount due is required',
   }),
-  deposit: Joi.number().min(0).max(Joi.ref('price')).required().messages({
+  minimumCharge: Joi.number().min(0).required().messages({
+    'number.min': 'Amount due cannot be negative',
+    'any.required': 'Amount due is required',
+  }),
+  deposit: Joi.number().min(0).required().custom((value, helpers) => {
+    const { price, extraKidPrice } = helpers.state.ancestors[0];
+    const maxDeposit = price + extraKidPrice;
+    if (value > maxDeposit) {
+      return helpers.error('number.max', { max: maxDeposit });
+    }
+    return value;
+  }).messages({
     'number.min': 'Deposit cannot be negative',
-    'number.max': 'Deposit cannot be more than the price',
+    'number.max': 'Deposit cannot be more than the total amount due (price + extraKidPrice)',
     'any.required': 'Deposit is required',
   }),
   description: Joi.string().optional().allow(''),
@@ -187,262 +317,12 @@ const createEventSchema = Joi.object({
   extraNote: Joi.string().optional().allow(''),
 })
 
-const EditFormPopUp = (props: editActivityProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<ActivityInTable>({
-    resolver: joiResolver(activitySchema),
-  })
-
-  useEffect(() => {
-    const fetchActivity = () => {
-      setValue('name', props.activity.name);
-      setValue('description', props.activity.description);
-      setValue('price', props.activity.price);
-    }
-
-    fetchActivity();
-  }, [setValue])
-
-  const onSubmit = (data: ActivityInTable, onClose: () => void) => {
-    try {
-      const updatedActivity = {
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.edit(props.activity.name, updatedActivity);
-      onClose();
-    } catch (error) {
-      toast.error('Failed to update activity')
-      if (error instanceof Error) {
-        setError('root', { message: error.message })
-      }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        isIconOnly
-        size='sm'
-        onPress={onOpen}
-      >
-        {props.activity.action && props.activity.action[0]}
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Edit Activity
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-              
-              <Input
-                  type="text"
-                  variant="underlined"
-                  label="Name"
-                  isClearable
-                  {...register('name')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.name}
-                  errorMessage={errors.name?.message}
-                  isRequired={true}
-                  className="mt-4"
-                />
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('price')}
-                isInvalid={!!errors.price}
-                errorMessage={errors.price?.message}
-                readOnly={isSubmitting}
-              />
-              </ModalBody> 
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Update Activity
-                </Button>
-              
-                
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const FormPopUp = (props: activityProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<ActivityInTable>({
-    resolver: joiResolver(activitySchema),
-  })
-
-  const onSubmit = (data: ActivityInTable, onClose: () => void) => {
-    try {
-      const newActivity = {
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.add(newActivity);
-      reset();
-      onClose()
-    } catch (error) {
-        toast.error('Failed to create activity')
-        if (error instanceof Error) {
-          setError('root', { message: error.message })
-        }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        color="danger"
-        radius="sm"
-        size="md"
-        variant="solid"
-        className="text-lg font-medium lg:flex"
-        isIconOnly
-        onPress={onOpen}
-      >
-        <PlusIcon />
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Create Activity
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-              
-              <Input
-                  type="text"
-                  variant="underlined"
-                  label="Name"
-                  isClearable
-                  {...register('name')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.name}
-                  errorMessage={errors.name?.message}
-                  isRequired={true}
-                  className="mt-4"
-                />
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('price')}
-                isInvalid={!!errors.price}
-                errorMessage={errors.price?.message}
-                readOnly={isSubmitting}
-              />
-              
-              
-              </ModalBody> 
-              <ModalFooter>
-              
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Create Activity
-                </Button>
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const ActivityTable = (props: activityTableProps) => {
-  // const activitiesApi = new ActivitiesApi()
-
-  // const { data: activities, isLoading } = useQuery<ApiResponse<Activity[]>, ServerError>({
-  //   queryKey: ['activities'],
-  //   queryFn: async () => await activitiesApi.getActivities(),
-  // })
+const ActivityTable = (props: ActivityTableProps) => {
+  const initialActivities: ActivityInTable[] = Object.values(ActivityType).map(type => ({
+    description: type,
+    isEnabled: false,
+    price: 0
+  }));
 
   const [filterValue, setFilterValue] = React.useState('')
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
@@ -450,43 +330,33 @@ const ActivityTable = (props: activityTableProps) => {
   )
   const [rowsPerPage, setRowsPerPage] = React.useState(2)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'name',
+    column: 'description',
     direction: 'ascending',
   })
 
   const [page, setPage] = React.useState(1)
 
-  const [activitiesInTable, setActivitiesInTable] = React.useState<ActivityInTable[]>([])
+  const [activitiesInTable, setActivitiesInTable] = React.useState<ActivityInTable[]>(initialActivities)
+  const [activitiesToSend, setActivitiesToSend] = React.useState<Partial<Activity>[]>([])
 
   const hasSearchFilter = Boolean(filterValue)
 
   const addActivity =  (activity: ActivityInTable) => {
-    setActivitiesInTable([...activitiesInTable, activity])
+    setActivitiesToSend(prevActivities => [...prevActivities, activity])
   }
 
   // Function to delete an activity by name
-  const deleteActivity = (activityName: string) => {
-    setActivitiesInTable(prevActivities =>
-      prevActivities.filter(activity => activity.name !== activityName)
+  const deleteActivity = (activityDescription: string) => {
+    setActivitiesToSend(prevActivities =>
+      prevActivities.filter(activity => activity.description !== activityDescription)
     );
   };
 
-// Function to edit an activity by name
-const editActivity = (activityName: string, updatedActivity: Partial<ActivityInTable>) => {
-  setActivitiesInTable(prevActivities => {
-    const index = prevActivities.findIndex(activity => activity.name === activityName);
-    if (index !== -1) {
-      const updatedActivities = [...prevActivities];
-      updatedActivities[index] = { ...updatedActivities[index], ...updatedActivity };
-      return updatedActivities;
-    }
-    console.log(`Activity with name "${activityName}" not found.`);
-    return prevActivities;
-  });
-};
+  useEffect(() => {
+    props.update(activitiesToSend)
+  }, [activitiesToSend])
 
   useEffect(() => {
-    props.update(activitiesInTable)
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
         setVisibleColumns(new Set(['name', 'price']))
@@ -510,7 +380,7 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
 
     if (hasSearchFilter) {
       filteredActivities = filteredActivities.filter((activity) =>
-        activity.name.toLowerCase().includes(filterValue.toLowerCase())
+        activity.description.toLowerCase().includes(filterValue.toLowerCase())
       )
     }
 
@@ -574,30 +444,79 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
   const renderCell = React.useCallback((activity: ActivityInTable, columnKey: React.Key) => {
     const cellValue = activity[columnKey as keyof ActivityInTable]
     switch (columnKey) {
-      case 'name':
+      case 'description':
         return (
           <div>
-            <p className="text-bold">{activity.name}</p>
+            <p className="text-bold">{activity.description}</p>
           </div>
         )
       case 'price':
         return (
-          <div>
-            ${activity.price}
-          </div>
+          <Input
+            type='number'
+            value={activity.price?.toString() ?? '0'}
+            placeholder='Set Price'
+            isRequired={true}
+            className="mt-4 md:max-w-72"
+            variant='underlined'
+            onChange={(e) => {
+              const newPrice = parseInt(e.target.value);
+              const {error} = activitySchema.validate({price: newPrice});
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              }
+              setActivitiesInTable((prevActivities) =>
+                prevActivities.map((a) =>
+                  a.description === activity.description ? { ...a, price: newPrice } : a)
+                
+              )
+            }}
+          />
         )
       case 'action':
-        if (Array.isArray(cellValue)) {
+        if (activity.isEnabled) {
           return (
-              <div className='flex gap-4'>
-                  <EditFormPopUp edit={editActivity} activity={activity}/>
-                  <Button onClick={() => deleteActivity(activity.name)} isIconOnly size='sm'>{cellValue[1]}</Button>
-              </div>
+            <Button
+            color="danger"
+        radius="sm"
+        variant="solid"
+              onClick={() => {
+                setActivitiesInTable(prevActivities =>
+                  prevActivities.map(a =>
+                    a.description === activity.description ? { ...a, isEnabled: false } : a
+                  )
+                );
+                deleteActivity(activity.description);
+              }}
+              isIconOnly
+              size='sm'
+            >
+              <Trash2 size={22}/>
+            </Button>
           );
-      } else {
-          console.error("Expected 'action' to be an array, but got:", cellValue);
-          return null;
-      }
+        } else {
+          return (
+            <Button
+            color="danger"
+        radius="sm"
+        variant="solid"
+              onClick={() => {
+                setActivitiesInTable(prevActivities =>
+                  prevActivities.map(a =>
+                    a.description === activity.description ? { ...a, isEnabled: true } : a
+                  )
+                );
+                addActivity(activity);
+              }}
+              isIconOnly
+              size='sm'
+            >
+              <PlusIcon size={22} />
+            </Button>
+          );
+        }
       default:
         return cellValue
     }
@@ -662,7 +581,6 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
               </DropdownMenu>
             </Dropdown>
           </div>
-              <FormPopUp add={addActivity}/>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
@@ -745,7 +663,1238 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
           </TableHeader>
           <TableBody emptyContent={'No activities found'} items={sortedItems}>
             {(item) => (
-              <TableRow key={item.name}>
+              <TableRow key={item.description}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const OrderTable = (props: orderTableProps) => {
+  const initialOrders: OrderInTable[] = Object.values(OrderType).map(type => ({
+    description: type,
+    isEnabled: false,
+    unitPrice: 0,
+    quantity: 1,
+    unit: undefined
+  }))
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'description',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [ordersInTable, setOrdersInTable] = React.useState<OrderInTable[]>(initialOrders)
+  const [ordersToSend, setOrdersToSend] = React.useState<Partial<Order>[]>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  const addOrder =  (order: OrderInTable) => {
+    setOrdersToSend(prevOrders => [...prevOrders, order])
+  }
+
+  // Function to delete an activity by name
+  const deleteOrder = (orderName: string) => {
+    setOrdersToSend(prevOrders =>
+      prevOrders.filter(order => order.description !== orderName)
+    );
+  };
+
+  useEffect(() => {
+    props.update(ordersToSend)
+  }, [ordersToSend])
+
+  useEffect(() => {
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['unit', 'unitPrice']))
+      } else {
+        setVisibleColumns(new Set(orderColumns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [ordersInTable])
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return orderColumns
+    return orderColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredOrders = [...(ordersInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredOrders = filteredOrders.filter((order) =>
+        order.description.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredOrders
+  }, [ordersInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof OrderInTable]
+      const second = b[sortDescriptor.column as keyof OrderInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const handleChange = (newValue: any, order: OrderInTable) => {
+      setOrdersInTable((prevOrders) =>
+        prevOrders.map((o) => 
+          o.description === order.description ? { ...o, unit: newValue} : o
+        ))
+    
+  };
+
+  const renderCell = React.useCallback((order: OrderInTable, columnKey: React.Key) => {
+    const cellValue = order[columnKey as keyof OrderInTable]
+    switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{order.description}</p>
+          </div>
+        )
+      case 'unit':
+        return (
+                  <Autocomplete
+                    label="Select Unit"
+                    className="mt-4 md:max-w-72"
+                    variant="underlined"
+                    isRequired
+                    value={order.unit}
+                    selectedKey={order.unit}
+                    onSelectionChange={(value) => handleChange(value, order)}
+                    inputProps={{
+                      classNames: {
+                        base: 'bg-white',
+                        inputWrapper:
+                          "px-1 bg-white shadow-none border-b-3 border-light-200 rounded-none after:content-[''] after:w-0 after:origin-center after:absolute after:left-1/2 after:-translate-x-1/2 after:-bottom-[2px] after:h-[2px] data-[open=true]:after:w-full data-[focus=true]:after:w-full after:bg-light-900 after:transition-width motion-reduce:after:transition-none",
+                        label: 'text-light-300 dark:text-secondary-400 text-small',
+                        input: 'text-secondary-950 dark:text-white',
+                      },
+                    }}
+                  >
+                    <AutocompleteItem key={`${UnitType.KG}`} value={`${UnitType.KG}`}>
+                      KG
+                    </AutocompleteItem>
+                    <AutocompleteItem key={`${UnitType.DZ}`} value={`${UnitType.DZ}`}>
+                      DZ
+                    </AutocompleteItem>
+                    <AutocompleteItem key={`${UnitType.UN}`} value={`${UnitType.UN}`}>
+                      UN
+                    </AutocompleteItem>
+                  </Autocomplete>
+                
+        )
+      case 'unitPrice':
+        return (
+            <Input
+              type='number'
+              value={order.unitPrice?.toString() ?? '0'}
+              placeholder='Set Price'
+              isRequired={true}
+              className="mt-4 md:max-w-72"
+              variant='underlined'
+              onChange={(e) => {
+                const newPrice = parseInt(e.target.value);
+                const {error} = orderSchema.validate({unitPrice: newPrice, quantity: order.quantity});
+  
+                if (error) {
+                  console.error(error.message);
+                  toast.error(error.message);
+                }
+                setOrdersInTable((prevOrders) =>
+                  prevOrders.map((o) =>
+                    o.description === order.description ? { ...o, unitPrice: newPrice } : o)
+                  
+                )
+              }}
+            />
+          )
+      case 'quantity':
+        return (
+          <Input
+            type='number'
+            value={order.quantity?.toString() ?? '1'}
+            placeholder='Set Quantity'
+            isRequired={true}
+            className="mt-4 md:max-w-72"
+            variant='underlined'
+            onChange={(e) => {
+              const newQuantity = parseInt(e.target.value);
+              const {error} = orderSchema.validate({quantity: newQuantity, unitPrice: order.unitPrice});
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              }
+              setOrdersInTable((prevOrders) =>
+                prevOrders.map((o) =>
+                  o.description === order.description ? { ...o, quantity: newQuantity } : o)
+                
+              )
+            }}
+          />
+        )
+      case 'total':
+        return (
+        <div>
+            ${order.quantity && order.unitPrice ? (order.quantity * order.unitPrice) : 0}
+          </div>
+        )
+        case 'action':
+          if (order.isEnabled) {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setOrdersInTable(prevOrders =>
+                    prevOrders.map(o =>
+                      o.description === o.description ? { ...o, isEnabled: false } : o
+                    )
+                  );
+                  deleteOrder(order.description);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <Trash2 size={22}/>
+              </Button>
+            );
+          } else {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setOrdersInTable(prevOrders =>
+                    prevOrders.map(o =>
+                      o.description === order.description ? { ...o, isEnabled: true } : o
+                    )
+                  );
+                  addOrder(order);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <PlusIcon size={22} />
+              </Button>
+            );
+          }
+      default:
+        return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {ordersInTable?.length} ordes
+          </span>
+          {/* <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">2</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label> */}
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    // onRowsPerPageChange,
+    ordersInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No orders found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.description}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const CakeTable = (props: cakeTableProps) => {
+  const initialCakes: CakeInTable[] = Object.values(CakeDescription).map(type => ({
+    description: type,
+    isEnabled: false,
+    unitPrice: 0,
+    quantity: 1,
+    type: ''
+  }))
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_CAKES_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'description',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [cakesInTable, setCakesInTable] = React.useState<CakeInTable[]>(initialCakes)
+  const [cakesToSend, setCakesToSend] = React.useState<Partial<Cake>[]>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  const addCake =  (cake: CakeInTable) => {
+    setCakesToSend(prevCakes => [...prevCakes, cake])
+  }
+
+  // Function to delete an activity by name
+  const deleteCake = (cakeName: string) => {
+    setCakesToSend(prevCakes =>
+      prevCakes.filter(cake => cake.description !== cakeName)
+    );
+  };
+
+  useEffect(() => {
+    props.update(cakesToSend)
+  }, [cakesToSend])
+
+  useEffect(() => {
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['type', 'price']))
+      } else {
+        setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [cakesInTable])
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return cakeColumns
+    return cakeColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredCakes = [...(cakesInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredCakes = filteredCakes.filter((cake) =>
+        cake.description.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredCakes
+  }, [cakesInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof CakeInTable]
+      const second = b[sortDescriptor.column as keyof CakeInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((cake: CakeInTable, columnKey: React.Key) => {
+    const cellValue = cake[columnKey as keyof CakeInTable]
+    switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{cake.description}</p>
+          </div>
+        )
+      case 'type':
+        return (
+          <Input
+                type='text'
+                value={cake.type ?? ''}
+                placeholder='Enter Type'
+                isRequired={true}
+                className="mt-4 md:max-w-72"
+                variant='underlined'
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  const {error} = cakeSchema.validate({unitPrice: cake.unitPrice, quantity: cake.quantity, type: newType});
+    
+                  if (error) {
+                    console.error(error.message);
+                    toast.error(error.message);
+                  }
+                  setCakesInTable((prevCakes) =>
+                    prevCakes.map((c) =>
+                      c.description === cake.description ? { ...c, type: newType } : c)
+                    
+                  )
+                }}
+              />
+        )
+      case 'unitPrice':
+          return (
+              <Input
+                type='number'
+                value={cake.unitPrice?.toString() ?? '0'}
+                placeholder='Set Price'
+                isRequired={true}
+                className="mt-4 md:max-w-72"
+                variant='underlined'
+                onChange={(e) => {
+                  const newPrice = parseInt(e.target.value);
+                  const {error} = cakeSchema.validate({unitPrice: newPrice, quantity: cake.quantity, type: cake.type});
+    
+                  if (error) {
+                    console.error(error.message);
+                    toast.error(error.message);
+                  }
+                  setCakesInTable((prevCakes) =>
+                    prevCakes.map((c) =>
+                      c.description === cake.description ? { ...c, unitPrice: newPrice } : c)
+                    
+                  )
+                }}
+              />
+            )
+        case 'quantity':
+          return (
+            <Input
+              type='number'
+              value={cake.quantity?.toString() ?? '1'}
+              placeholder='Set Quantity'
+              isRequired={true}
+              className="mt-4 md:max-w-72"
+              variant='underlined'
+              onChange={(e) => {
+                const newQuantity = parseInt(e.target.value);
+                const {error} = cakeSchema.validate({quantity: newQuantity, unitPrice: cake.unitPrice, type: cake.type});
+  
+                if (error) {
+                  console.error(error.message);
+                  toast.error(error.message);
+                }
+                setCakesInTable((prevCakes) =>
+                  prevCakes.map((c) =>
+                    c.description === cake.description ? { ...c, quantity: newQuantity } : c)
+                  
+                )
+              }}
+            />
+          )
+        case 'total':
+          return (
+          <div>
+              ${cake.quantity && cake.unitPrice ? (cake.quantity * cake.unitPrice) : 0}
+            </div>
+          )
+          case 'action':
+            if (cake.isEnabled) {
+              return (
+                <Button
+                color="danger"
+                radius="sm"
+                variant="solid"
+                  onClick={() => {
+                    setCakesInTable(prevCakes =>
+                      prevCakes.map(c =>
+                        c.description === c.description ? { ...c, isEnabled: false } : c
+                      )
+                    );
+                    deleteCake(cake.description);
+                  }}
+                  isIconOnly
+                  size='sm'
+                >
+                  <Trash2 size={22}/>
+                </Button>
+              );
+            } else {
+              return (
+                <Button
+                color="danger"
+                radius="sm"
+                variant="solid"
+                  onClick={() => {
+                    setCakesInTable(prevCakes =>
+                      prevCakes.map(c =>
+                        c.description === cake.description ? { ...c, isEnabled: true } : c
+                      )
+                    );
+                    addCake(cake);
+                  }}
+                  isIconOnly
+                  size='sm'
+                >
+                  <PlusIcon size={22} />
+                </Button>
+              );
+            }
+        default:
+          return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {cakesInTable?.length} cakes
+          </span>
+          {/* <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">2</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label> */}
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    // onRowsPerPageChange,
+    cakesInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No cakes found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.description}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const ExtraTable = (props: extraTableProps) => {
+  const initialExtras: ExtraInTable[] = Object.values(ExtraType).map(type => ({
+    description: type,
+    isEnabled: false,
+    unitPrice: 0,
+    quantity: 1,
+  }))
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'description',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [extrasInTable, setExtrasInTable] = React.useState<ExtraInTable[]>(initialExtras)
+  const [extrasToSend, setExtrasToSend] = React.useState<Partial<Extra>[]>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  const addExtra =  (extra: ExtraInTable) => {
+    setExtrasToSend(prevExtras => [...prevExtras, extra])
+  }
+
+  // Function to delete an activity by name
+  const deleteExtra = (extraDesc: string) => {
+    setExtrasToSend(prevExtras =>
+      prevExtras.filter(extra => extra.description !== extraDesc)
+    );
+  };
+
+  useEffect(() => {
+    props.update(extrasToSend)
+  }, [extrasToSend])
+
+  useEffect(() => {
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['description', 'unitPrice']))
+      } else {
+        setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [extrasInTable])
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return extraColumns
+    return extraColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredExtras = [...(extrasInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredExtras = filteredExtras.filter((extra) =>
+        extra.description.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredExtras
+  }, [extrasInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof ExtraInTable]
+      const second = b[sortDescriptor.column as keyof ExtraInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((extra: ExtraInTable, columnKey: React.Key) => {
+    const cellValue = extra[columnKey as keyof ExtraInTable]
+    switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{extra.description}</p>
+          </div>
+        )
+      case 'unitPrice':
+        return (
+            <Input
+              type='number'
+              value={extra.unitPrice?.toString() ?? '0'}
+              placeholder='Set Price'
+              isRequired={true}
+              className="mt-4 md:max-w-72"
+              variant='underlined'
+              onChange={(e) => {
+                const newPrice = parseInt(e.target.value);
+                const {error} = extraSchema.validate({unitPrice: newPrice, quantity: extra.quantity});
+  
+                if (error) {
+                  console.error(error.message);
+                  toast.error(error.message);
+                }
+                setExtrasInTable((prevExtras) =>
+                  prevExtras.map((e) =>
+                    e.description === extra.description ? { ...e, unitPrice: newPrice } : e)
+                  
+                )
+              }}
+            />
+          )
+      case 'quantity':
+        return (
+          <Input
+            type='number'
+            value={extra.quantity?.toString() ?? '1'}
+            placeholder='Set Quantity'
+            isRequired={true}
+            className="mt-4 md:max-w-72"
+            variant='underlined'
+            onChange={(e) => {
+              const newQuantity = parseInt(e.target.value);
+              const {error} = extraSchema.validate({quantity: newQuantity, unitPrice: extra.unitPrice});
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              }
+              setExtrasInTable((prevExtras) =>
+                prevExtras.map((e) =>
+                  e.description === extra.description ? { ...e, quantity: newQuantity } : e)
+                
+              )
+            }}
+          />
+        )
+      case 'total':
+        return (
+        <div>
+            ${extra.quantity && extra.unitPrice ? (extra.quantity * extra.unitPrice) : 0}
+          </div>
+        )
+        case 'action':
+          if (extra.isEnabled) {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setExtrasInTable(prevExtras =>
+                    prevExtras.map(e =>
+                      e.description === e.description ? { ...e, isEnabled: false } : e
+                    )
+                  );
+                  deleteExtra(extra.description);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <Trash2 size={22}/>
+              </Button>
+            );
+          } else {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setExtrasInTable(prevExtras =>
+                    prevExtras.map(e =>
+                      e.description === extra.description ? { ...e, isEnabled: true } : e
+                    )
+                  );
+                  addExtra(extra);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <PlusIcon size={22} />
+              </Button>
+            );
+          }
+      default:
+        return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {extrasInTable?.length} extras
+          </span>
+          {/* <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">2</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label> */}
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    // onRowsPerPageChange,
+    extrasInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No extras found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.description}>
                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
               </TableRow>
             )}
@@ -772,10 +1921,26 @@ const Section = (props: SectionProps) => {
 export default function CreateEventPage() {
   const { createEvent } = useEvents()
   const [activities, setAcitivities] = React.useState<ActivityInTable[]>([])
+  const [orders, setOrders] = React.useState<OrderInTable[]>([])
+  const [cakes, setCakes] = React.useState<CakeInTable[]>([])
+  const [extras, setExtras] = React.useState<ExtraInTable[]>([])
   const router = useRouter()
 
   const update = (activities: ActivityInTable[]) => {
     setAcitivities(activities)
+    console.log(activities)
+  }
+
+  const updateOrders = (orders: OrderInTable[]) => {
+    setOrders(orders)
+  }
+
+  const updateCakes = (cakes: CakeInTable[]) => {
+    setCakes(cakes);
+  }
+
+  const updateExtras = (extras: ExtraInTable[]) => {
+    setExtras(extras);
   }
 
   const {
@@ -805,9 +1970,28 @@ export default function CreateEventPage() {
 
     try {
       let newActivities = activities.map((activity: ActivityInTable) => ({
-        name: activity.name,
         description: activity.description,
         price: activity.price
+      }))
+
+      let newOrders = orders.map((order: OrderInTable) => ({
+        unit: order.unit,
+        description: order.description,
+        unitPrice: order.unitPrice,
+        quantity: order.quantity
+      }))
+
+      let newCakes = cakes.map((cake: CakeInTable) => ({
+        description: cake.description,
+        type: cake.type,
+        unitPrice: cake.unitPrice,
+        quantity: cake.quantity
+      }))
+
+      let newExtras = extras.map((extra: ExtraInTable) => ({
+        description: extra.description,
+        unitPrice: extra.unitPrice,
+        quantity: extra.quantity
       }))
 
       const newEvent = {
@@ -817,6 +2001,7 @@ export default function CreateEventPage() {
         status: status,
         price: data.price,
         extraKidPrice: data.extraKidPrice,
+        minimumCharge: data.minimumCharge,
         deposit: data.deposit,
         description: data.description,
         startDate: startDateTime.toISOString(),
@@ -836,7 +2021,7 @@ export default function CreateEventPage() {
         extraNote: data.extraNote,
       }
 
-      await createEvent(newEvent, newActivities)
+      await createEvent(newEvent, newActivities, newOrders, newCakes, newExtras)
       router.push('/events')
       toast.success(`Event ${data.title} created successfully.`)
       reset()
@@ -1011,7 +2196,6 @@ export default function CreateEventPage() {
               />
               <Textarea
                 label="Description"
-                placeholder="Enter a description"
                 variant="underlined"
                 className="mt-4 self-end md:md:max-w-72"
                 {...register('description')}
@@ -1214,6 +2398,17 @@ export default function CreateEventPage() {
                 errorMessage={errors.extraKidPrice?.message}
                 readOnly={isSubmitting}
               />
+              <Input
+                type='number'
+                isRequired
+                variant='underlined'
+                label='Minimum Charge'
+                isClearable
+                {...register('minimumCharge')}
+                isInvalid={!!errors.minimumCharge}
+                errorMessage={errors.minimumCharge?.message}
+                readOnly={isSubmitting}
+              />
               <Textarea
                 label="Extra Note"
                 placeholder="Enter a description"
@@ -1241,13 +2436,32 @@ export default function CreateEventPage() {
         />
         <Spacer y={2} />
         <Divider className="bg-light-200" />
-    <div className='mt-10 flex w-full flex-col items-start justify-start p-3 md:p-8 md:py-16 lg:flex-row lg:items-center'>
-      <div className='flex w-full flex-col md:w-[350px]'>
-        <h3 className='text-secondary-950 text-base dark:text-secondary-50'>Activity Information</h3>
-        <p className='mt-0.5 text-wrap text-small text-light-300 md:w-[90%]'>Enter the event activities</p>
-      </div>
-      <ActivityTable update={update}/>
-    </div>
+        <Section 
+          title='Activity Information' 
+          description='Enter the event activities'
+          form={<ActivityTable update={update}/>}
+        />
+        <Spacer y={2} />
+        <Divider className="bg-light-200" />
+        <Section 
+          title='Order Information' 
+          description='Enter the event orders'
+          form={<OrderTable update={updateOrders}/>}
+        />
+        <Spacer y={2} />
+        <Divider className="bg-light-200" />
+        <Section 
+          title='Cake Information' 
+          description='Enter the event cakes'
+          form={<CakeTable update={updateCakes}/>}
+        />
+        <Spacer y={2} />
+        <Divider className="bg-light-200" />
+        <Section 
+          title='Extra Decorations and Themes Information' 
+          description='Enter the event extras'
+          form={<ExtraTable update={updateExtras}/>}
+        />
         <div className="flex w-full justify-end gap-5 p-3 md:p-8">
           <Button
             type="button"
