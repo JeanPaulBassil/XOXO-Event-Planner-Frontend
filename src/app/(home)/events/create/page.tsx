@@ -35,7 +35,7 @@ import {
   ModalFooter
 } from '@nextui-org/react'
 import Joi, { number } from 'joi'
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useEvents } from '../../contexts/EventContext'
 import { Controller, useForm } from 'react-hook-form'
 import { joiResolver } from '@hookform/resolvers/joi'
@@ -47,9 +47,12 @@ import { useQuery } from '@tanstack/react-query'
 import { ApiResponse, ServerError } from '@/api/utils'
 import { PressEvent, Selection, SortDescriptor } from '@react-types/shared'
 import { toCapitalCase } from '@/utils/string'
+import { Activity, ActivityType } from '@/api/models/Activity.model'
+import { Extra, ExtraType } from '@/api/models/Extra.model'
+import { Order, OrderType, UnitType } from '@/api/models/Order.model'
+import { Cake, CakeDescription } from '@/api/models/Cake.model'
 
 const INITIAL_VISIBLE_COLUMNS = [
-  'name',
   'description',
   'price',
   'action',
@@ -65,9 +68,11 @@ const INITIAL_ORDERS_VISIBLE_COLUMNS = [
 ]
 
 const INITIAL_CAKES_VISIBLE_COLUMNS = [
-  'type',
   'description',
-  'price',
+  'type',
+  'unitPrice',
+  'quantity',
+  'total',
   'action',
 ]
 
@@ -80,7 +85,6 @@ const INITIAL_EXTRAS_VISIBLE_COLUMNS = [
 ]
 
 const columns = [
-  { name: 'Name', uid: 'name', sortable: true},
   { name: 'Description', uid: 'description', sortable: true},
   { name: 'Price', uid: 'price', sortable: true},
   { name: 'Actions', uid: 'action', sortable: false},
@@ -96,9 +100,11 @@ const orderColumns = [
 ]
 
 const cakeColumns = [
-  { name: 'Type', uid: 'type', sortable: true},
   { name: 'Description', uid: 'description', sortable: true},
-  { name: 'Price', uid: 'price', sortable: true},
+  { name: 'Type', uid: 'type', sortable: true},
+  { name: 'Unit Price', uid: 'unitPrice', sortable: true},
+  { name: 'Quantity', uid: 'quantity', sortable: true},
+  { name: 'Total', uid: 'total', sortable: true},
   { name: 'Actions', uid: 'action', sortable: false},
 ]
 
@@ -117,73 +123,42 @@ interface SectionProps {
 }
 
 type ActivityInTable = {
-  name: string
-  description: string
+  description: ActivityType
   price: number
-  action?: any[]
+  action?: string
+  isEnabled: boolean
 }
 
 type OrderInTable = {
-  description: string
-  unit: string
+  description: OrderType
+  unit: UnitType | undefined
   unitPrice: number
   quantity: number
   total?: number
   action?: any[]
+  isEnabled: boolean
 }
 
 type CakeInTable = {
   type: string
-  description: string
-  price: number
-  action?: any[]
-}
-
-type ExtraInTable = {
-  description: string
+  description: CakeDescription
   unitPrice: number
   quantity: number
   total?: number
   action?: any[]
+  isEnabled: boolean
 }
 
-type activityProps = {
-  add: Function
+type ExtraInTable = {
+  description: ExtraType
+  unitPrice: number
+  quantity: number
+  total?: number
+  action?: any[]
+  isEnabled: boolean
 }
 
-type orderProps = {
-  add: Function
-}
-
-type cakeProps = {
-  add: Function
-}
-
-type extraProps = {
-  add: Function
-}
-
-type editActivityProps = {
-  edit: Function
-  activity: ActivityInTable
-}
-
-type editOrderProps = {
-  edit: Function
-  order: OrderInTable
-}
-
-type editCakeProps = {
-  edit: Function
-  cake: CakeInTable
-}
-
-type editExtraProps = {
-  edit: Function
-  extra: ExtraInTable
-}
-
-type activityTableProps = {
+type ActivityTableProps = {
   update: Function
 }
 
@@ -224,10 +199,6 @@ type FormData = {
 }
 
 const activitySchema = Joi.object({
-  name: Joi.string().required().messages({
-    'any.required': 'Activity name is required',
-  }),
-  description: Joi.string().optional().allow(''),
   price: Joi.number().min(0).required().messages({
     'number.min': 'Activity price cannot be negative',
     'any.required': 'Activity price is required',
@@ -235,10 +206,6 @@ const activitySchema = Joi.object({
 })
 
 const orderSchema = Joi.object({
-  description: Joi.string().optional().allow(''),
-  unit: Joi.string().required().messages({
-    'any.required': 'Order name is required',
-  }),
   unitPrice: Joi.number().min(0).required().messages({
     'number.min': 'Order price cannot be negative',
     'any.required': 'Order price is required',
@@ -253,27 +220,26 @@ const cakeSchema = Joi.object({
   type: Joi.string().required().messages({
     'any.required': 'Cake type is required',
   }),
-  description: Joi.string().optional().allow(''),
-  price: Joi.number().min(0).required().messages({
-    'number.min': 'Cake price cannot be negative',
-    'any.required': 'Cake price is required',
+  unitPrice: Joi.number().min(0).required().messages({
+    'number.min': 'Order price cannot be negative',
+    'any.required': 'Order price is required',
+  }),
+  quantity: Joi.number().min(1).required().messages({
+    'number.min': 'Order quantity cannot be less than one',
+    'any.required': 'Order price is required',
   })
 })
 
 const extraSchema = Joi.object({
-  description: Joi.string().required().messages({
-    'any.required': 'Extra description is required',
-  }),
   unitPrice: Joi.number().min(0).required().messages({
     'number.min': 'Extra price cannot be negative',
     'any.required': 'Extra price is required',
   }),
   quantity: Joi.number().min(1).required().messages({
     'number.min': 'Extra quantity cannot be less than one',
-    'any.required': 'Extra price is required',
+    'any.required': 'Extra quantity is required',
   })
 })
-
 
 const createEventSchema = Joi.object({
   clientName: Joi.string().required().messages({
@@ -351,1036 +317,12 @@ const createEventSchema = Joi.object({
   extraNote: Joi.string().optional().allow(''),
 })
 
-const EditFormPopUp = (props: editActivityProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<ActivityInTable>({
-    resolver: joiResolver(activitySchema),
-  })
-
-  useEffect(() => {
-    const fetchActivity = () => {
-      setValue('name', props.activity.name);
-      setValue('description', props.activity.description);
-      setValue('price', props.activity.price);
-    }
-
-    fetchActivity();
-  }, [setValue])
-
-  const onSubmit = (data: ActivityInTable, onClose: () => void) => {
-    try {
-      const updatedActivity = {
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.edit(props.activity.name, updatedActivity);
-      onClose();
-    } catch (error) {
-      toast.error('Failed to update activity')
-      if (error instanceof Error) {
-        setError('root', { message: error.message })
-      }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        isIconOnly
-        size='sm'
-        onPress={onOpen}
-      >
-        {props.activity.action && props.activity.action[0]}
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Edit Activity
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-              
-              <Input
-                  type="text"
-                  variant="underlined"
-                  label="Name"
-                  isClearable
-                  {...register('name')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.name}
-                  errorMessage={errors.name?.message}
-                  isRequired={true}
-                  className="mt-4"
-                />
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('price')}
-                isInvalid={!!errors.price}
-                errorMessage={errors.price?.message}
-                readOnly={isSubmitting}
-              />
-              </ModalBody> 
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Update Activity
-                </Button>
-              
-                
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const EditOrderFormPopUp = (props: editOrderProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<OrderInTable>({
-    resolver: joiResolver(orderSchema),
-  })
-
-  useEffect(() => {
-    const fetchOrder = () => {
-      setValue('description', props.order.description);
-      setValue('unit', props.order.unit);
-      setValue('unitPrice', props.order.unitPrice);
-      setValue('quantity', props.order.quantity);
-    }
-
-    fetchOrder();
-  }, [setValue])
-
-  const onSubmit = (data: OrderInTable, onClose: () => void) => {
-    try {
-      const updatedOrder = {
-        unit: data.unit,
-        description: data.description,
-        unitPrice: data.unitPrice,
-        quantity: data.quantity,
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.edit(props.order.unit, updatedOrder);
-      onClose();
-    } catch (error) {
-      toast.error('Failed to update order')
-      if (error instanceof Error) {
-        setError('root', { message: error.message })
-      }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        isIconOnly
-        size='sm'
-        onPress={onOpen}
-      >
-        {props.order.action && props.order.action[0]}
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Edit Order
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-              
-              <Input
-                  type="text"
-                  variant="underlined"
-                  label="Unit"
-                  isClearable
-                  {...register('unit')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.unit}
-                  errorMessage={errors.unit?.message}
-                  isRequired={true}
-                  className="mt-4"
-                />
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('unitPrice')}
-                isInvalid={!!errors.unitPrice}
-                errorMessage={errors.unitPrice?.message}
-                readOnly={isSubmitting}
-              />
-              <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Quantity"
-                isClearable
-                className="mt-4"
-                {...register('quantity')}
-                isInvalid={!!errors.quantity}
-                errorMessage={errors.quantity?.message}
-                readOnly={isSubmitting}
-              />
-              </ModalBody> 
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Update Order
-                </Button>
-              
-                
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const EditCakeFormPopUp = (props: editCakeProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<CakeInTable>({
-    resolver: joiResolver(cakeSchema),
-  })
-
-  useEffect(() => {
-    const fetchCake = () => {
-      setValue('type', props.cake.type);
-      setValue('description', props.cake.description);
-      setValue('price', props.cake.price);
-    }
-
-    fetchCake();
-  }, [setValue])
-
-  const onSubmit = (data: CakeInTable, onClose: () => void) => {
-    try {
-      const updatedCake = {
-        type: data.type,
-        description: data.description,
-        price: data.price,
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.edit(props.cake.type, updatedCake);
-      onClose();
-    } catch (error) {
-      toast.error('Failed to update cake')
-      if (error instanceof Error) {
-        setError('root', { message: error.message })
-      }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        isIconOnly
-        size='sm'
-        onPress={onOpen}
-      >
-        {props.cake.action && props.cake.action[0]}
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Edit Cake
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-              
-              <Input
-                  type="text"
-                  variant="underlined"
-                  label="Name"
-                  isClearable
-                  {...register('type')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.type}
-                  errorMessage={errors.type?.message}
-                  isRequired={true}
-                  className="mt-4"
-                />
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('price')}
-                isInvalid={!!errors.price}
-                errorMessage={errors.price?.message}
-                readOnly={isSubmitting}
-              />
-              </ModalBody> 
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Update Cake
-                </Button>
-              
-                
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const EditExtraFormPopUp = (props: editExtraProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<ExtraInTable>({
-    resolver: joiResolver(extraSchema),
-  })
-
-  useEffect(() => {
-    const fetchExtra = () => {
-      setValue('description', props.extra.description);
-      setValue('unitPrice', props.extra.unitPrice);
-      setValue('quantity', props.extra.quantity);
-    }
-
-    fetchExtra();
-  }, [setValue])
-
-  const onSubmit = (data: ExtraInTable, onClose: () => void) => {
-    try {
-      const updatedExtra = {
-        description: data.description,
-        unitPrice: data.unitPrice,
-        quantity: data.quantity,
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.edit(props.extra.description, updatedExtra);
-      onClose();
-    } catch (error) {
-      toast.error('Failed to update extra')
-      if (error instanceof Error) {
-        setError('root', { message: error.message })
-      }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        isIconOnly
-        size='sm'
-        onPress={onOpen}
-      >
-        {props.extra.action && props.extra.action[0]}
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Edit Extra
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  isRequired
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('unitPrice')}
-                isInvalid={!!errors.unitPrice}
-                errorMessage={errors.unitPrice?.message}
-                readOnly={isSubmitting}
-              />
-              <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Quantity"
-                isClearable
-                className="mt-4"
-                {...register('quantity')}
-                isInvalid={!!errors.quantity}
-                errorMessage={errors.quantity?.message}
-                readOnly={isSubmitting}
-              />
-              </ModalBody> 
-              <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Update Extra
-                </Button>
-              
-                
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const FormPopUp = (props: activityProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<ActivityInTable>({
-    resolver: joiResolver(activitySchema),
-  })
-
-  const onSubmit = (data: ActivityInTable, onClose: () => void) => {
-    try {
-      const newActivity = {
-        name: data.name,
-        description: data.description,
-        price: data.price,
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.add(newActivity);
-      reset();
-      onClose()
-    } catch (error) {
-        toast.error('Failed to create activity')
-        if (error instanceof Error) {
-          setError('root', { message: error.message })
-        }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        color="danger"
-        radius="sm"
-        size="md"
-        variant="solid"
-        className="text-lg font-medium lg:flex"
-        isIconOnly
-        onPress={onOpen}
-      >
-        <PlusIcon />
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Create Activity
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-              
-              <Input
-                  type="text"
-                  variant="underlined"
-                  label="Name"
-                  isClearable
-                  {...register('name')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.name}
-                  errorMessage={errors.name?.message}
-                  isRequired={true}
-                  className="mt-4"
-                />
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('price')}
-                isInvalid={!!errors.price}
-                errorMessage={errors.price?.message}
-                readOnly={isSubmitting}
-              />
-              
-              
-              </ModalBody> 
-              <ModalFooter>
-              
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Create Activity
-                </Button>
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const OrderFormPopUp = (props: orderProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<OrderInTable>({
-    resolver: joiResolver(orderSchema),
-  })
-
-  const onSubmit = (data: OrderInTable, onClose: () => void) => {
-    try {
-      const newOrder = {
-        unit: data.unit,
-        description: data.description,
-        unitPrice: data.unitPrice,
-        quantity: data.quantity,
-        total: (data.unitPrice * data.quantity),
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.add(newOrder);
-      reset();
-      onClose()
-    } catch (error) {
-        toast.error('Failed to create Order')
-        if (error instanceof Error) {
-          setError('root', { message: error.message })
-        }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        color="danger"
-        radius="sm"
-        size="md"
-        variant="solid"
-        className="text-lg font-medium lg:flex"
-        isIconOnly
-        onPress={onOpen}
-      >
-        <PlusIcon />
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Create Order
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-              
-              <Input
-                  type="text"
-                  variant="underlined"
-                  label="Unit"
-                  isClearable
-                  {...register('unit')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.unit}
-                  errorMessage={errors.unit?.message}
-                  isRequired={true}
-                  className="mt-4"
-                />
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('unitPrice')}
-                isInvalid={!!errors.unitPrice}
-                errorMessage={errors.unitPrice?.message}
-                readOnly={isSubmitting}
-              />
-              <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Quantity"
-                isClearable
-                className="mt-4"
-                {...register('quantity')}
-                isInvalid={!!errors.quantity}
-                errorMessage={errors.quantity?.message}
-                readOnly={isSubmitting}
-              />
-              
-              </ModalBody> 
-              <ModalFooter>
-              
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Create Order
-                </Button>
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const CakeFormPopUp = (props: cakeProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<CakeInTable>({
-    resolver: joiResolver(cakeSchema),
-  })
-
-  const onSubmit = (data: CakeInTable, onClose: () => void) => {
-    try {
-      const newCake = {
-        type: data.type,
-        description: data.description,
-        price: data.price,
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.add(newCake);
-      reset();
-      onClose()
-    } catch (error) {
-        toast.error('Failed to create cake')
-        if (error instanceof Error) {
-          setError('root', { message: error.message })
-        }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        color="danger"
-        radius="sm"
-        size="md"
-        variant="solid"
-        className="text-lg font-medium lg:flex"
-        isIconOnly
-        onPress={onOpen}
-      >
-        <PlusIcon />
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Create Cake
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-              
-              <Input
-                  type="text"
-                  variant="underlined"
-                  label="Type"
-                  isClearable
-                  {...register('type')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.type}
-                  errorMessage={errors.type?.message}
-                  isRequired={true}
-                  className="mt-4"
-                />
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('price')}
-                isInvalid={!!errors.price}
-                errorMessage={errors.price?.message}
-                readOnly={isSubmitting}
-              />
-              
-              
-              </ModalBody> 
-              <ModalFooter>
-              
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Create Cake
-                </Button>
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const ExtraFormPopUp = (props: extraProps) => {
-  const {isOpen, onOpen, onOpenChange} = useDisclosure();
-  const {
-    handleSubmit,
-    register,
-    setError,
-    reset,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<ExtraInTable>({
-    resolver: joiResolver(extraSchema),
-  })
-
-  const onSubmit = (data: ExtraInTable, onClose: () => void) => {
-    try {
-      const newExtra = {
-        description: data.description,
-        unitPrice: data.unitPrice,
-        quantity: data.quantity,
-        total: (data.unitPrice * data.quantity),
-        action: [<Edit size={16}/>, <Trash2 size={16}/>]
-      }
-
-      props.add(newExtra);
-      reset();
-      onClose()
-    } catch (error) {
-        toast.error('Failed to create Extra')
-        if (error instanceof Error) {
-          setError('root', { message: error.message })
-        }
-    }
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>, onClose: () => void) => {
-    e.preventDefault();
-    handleSubmit((data) => onSubmit(data, onClose))();
-  }
-
-  return (
-    <>
-      <Button
-        color="danger"
-        radius="sm"
-        size="md"
-        variant="solid"
-        className="text-lg font-medium lg:flex"
-        isIconOnly
-        onPress={onOpen}
-      >
-        <PlusIcon />
-      </Button>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className='flex flex-col gap-1'>
-                Create Extra
-              </ModalHeader>
-              <form className="w-full">
-              <ModalBody>
-                <Input
-                  type="text"
-                  variant="underlined"
-                  label="Description"
-                  isClearable
-                  {...register('description')}
-                  readOnly={isSubmitting}
-                  isInvalid={!!errors.description}
-                  errorMessage={errors.description?.message}
-                  isRequired
-                  className="mt-4"
-                />
-                <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Price"
-                isClearable
-                className="mt-4"
-                {...register('unitPrice')}
-                isInvalid={!!errors.unitPrice}
-                errorMessage={errors.unitPrice?.message}
-                readOnly={isSubmitting}
-              />
-              <Input
-                type="number"
-                isRequired
-                variant="underlined"
-                label="Quantity"
-                isClearable
-                className="mt-4"
-                {...register('quantity')}
-                isInvalid={!!errors.quantity}
-                errorMessage={errors.quantity?.message}
-                readOnly={isSubmitting}
-              />
-              
-              </ModalBody> 
-              <ModalFooter>
-              
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
-                </Button>
-                <Button color="primary" onClick={(e) => {
-                handleClick(e, onClose)
-                }}>
-                  Create Extra
-                </Button>
-              </ModalFooter>
-              </form>
-            </>
-          )}
-        </ModalContent>
-      </Modal>  
-    </>
-  )
-}
-
-const ActivityTable = (props: activityTableProps) => {
-  // const activitiesApi = new ActivitiesApi()
-
-  // const { data: activities, isLoading } = useQuery<ApiResponse<Activity[]>, ServerError>({
-  //   queryKey: ['activities'],
-  //   queryFn: async () => await activitiesApi.getActivities(),
-  // })
+const ActivityTable = (props: ActivityTableProps) => {
+  const initialActivities: ActivityInTable[] = Object.values(ActivityType).map(type => ({
+    description: type,
+    isEnabled: false,
+    price: 0
+  }));
 
   const [filterValue, setFilterValue] = React.useState('')
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
@@ -1388,43 +330,33 @@ const ActivityTable = (props: activityTableProps) => {
   )
   const [rowsPerPage, setRowsPerPage] = React.useState(2)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'name',
+    column: 'description',
     direction: 'ascending',
   })
 
   const [page, setPage] = React.useState(1)
 
-  const [activitiesInTable, setActivitiesInTable] = React.useState<ActivityInTable[]>([])
+  const [activitiesInTable, setActivitiesInTable] = React.useState<ActivityInTable[]>(initialActivities)
+  const [activitiesToSend, setActivitiesToSend] = React.useState<Partial<Activity>[]>([])
 
   const hasSearchFilter = Boolean(filterValue)
 
   const addActivity =  (activity: ActivityInTable) => {
-    setActivitiesInTable([...activitiesInTable, activity])
+    setActivitiesToSend(prevActivities => [...prevActivities, activity])
   }
 
   // Function to delete an activity by name
-  const deleteActivity = (activityName: string) => {
-    setActivitiesInTable(prevActivities =>
-      prevActivities.filter(activity => activity.name !== activityName)
+  const deleteActivity = (activityDescription: string) => {
+    setActivitiesToSend(prevActivities =>
+      prevActivities.filter(activity => activity.description !== activityDescription)
     );
   };
 
-// Function to edit an activity by name
-const editActivity = (activityName: string, updatedActivity: Partial<ActivityInTable>) => {
-  setActivitiesInTable(prevActivities => {
-    const index = prevActivities.findIndex(activity => activity.name === activityName);
-    if (index !== -1) {
-      const updatedActivities = [...prevActivities];
-      updatedActivities[index] = { ...updatedActivities[index], ...updatedActivity };
-      return updatedActivities;
-    }
-    console.log(`Activity with name "${activityName}" not found.`);
-    return prevActivities;
-  });
-};
+  useEffect(() => {
+    props.update(activitiesToSend)
+  }, [activitiesToSend])
 
   useEffect(() => {
-    props.update(activitiesInTable)
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
         setVisibleColumns(new Set(['name', 'price']))
@@ -1448,7 +380,7 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
 
     if (hasSearchFilter) {
       filteredActivities = filteredActivities.filter((activity) =>
-        activity.name.toLowerCase().includes(filterValue.toLowerCase())
+        activity.description.toLowerCase().includes(filterValue.toLowerCase())
       )
     }
 
@@ -1512,30 +444,79 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
   const renderCell = React.useCallback((activity: ActivityInTable, columnKey: React.Key) => {
     const cellValue = activity[columnKey as keyof ActivityInTable]
     switch (columnKey) {
-      case 'name':
+      case 'description':
         return (
           <div>
-            <p className="text-bold">{activity.name}</p>
+            <p className="text-bold">{activity.description}</p>
           </div>
         )
       case 'price':
         return (
-          <div>
-            ${activity.price}
-          </div>
+          <Input
+            type='number'
+            value={activity.price?.toString() ?? '0'}
+            placeholder='Set Price'
+            isRequired={true}
+            className="mt-4 md:max-w-72"
+            variant='underlined'
+            onChange={(e) => {
+              const newPrice = parseInt(e.target.value);
+              const {error} = activitySchema.validate({price: newPrice});
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              }
+              setActivitiesInTable((prevActivities) =>
+                prevActivities.map((a) =>
+                  a.description === activity.description ? { ...a, price: newPrice } : a)
+                
+              )
+            }}
+          />
         )
       case 'action':
-        if (Array.isArray(cellValue)) {
+        if (activity.isEnabled) {
           return (
-              <div className='flex gap-4'>
-                  <EditFormPopUp edit={editActivity} activity={activity}/>
-                  <Button onClick={() => deleteActivity(activity.name)} isIconOnly size='sm'>{cellValue[1]}</Button>
-              </div>
+            <Button
+            color="danger"
+        radius="sm"
+        variant="solid"
+              onClick={() => {
+                setActivitiesInTable(prevActivities =>
+                  prevActivities.map(a =>
+                    a.description === activity.description ? { ...a, isEnabled: false } : a
+                  )
+                );
+                deleteActivity(activity.description);
+              }}
+              isIconOnly
+              size='sm'
+            >
+              <Trash2 size={22}/>
+            </Button>
           );
-      } else {
-          console.error("Expected 'action' to be an array, but got:", cellValue);
-          return null;
-      }
+        } else {
+          return (
+            <Button
+            color="danger"
+        radius="sm"
+        variant="solid"
+              onClick={() => {
+                setActivitiesInTable(prevActivities =>
+                  prevActivities.map(a =>
+                    a.description === activity.description ? { ...a, isEnabled: true } : a
+                  )
+                );
+                addActivity(activity);
+              }}
+              isIconOnly
+              size='sm'
+            >
+              <PlusIcon size={22} />
+            </Button>
+          );
+        }
       default:
         return cellValue
     }
@@ -1600,7 +581,6 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
               </DropdownMenu>
             </Dropdown>
           </div>
-              <FormPopUp add={addActivity}/>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
@@ -1683,7 +663,7 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
           </TableHeader>
           <TableBody emptyContent={'No activities found'} items={sortedItems}>
             {(item) => (
-              <TableRow key={item.name}>
+              <TableRow key={item.description}>
                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
               </TableRow>
             )}
@@ -1695,49 +675,46 @@ const editActivity = (activityName: string, updatedActivity: Partial<ActivityInT
 }
 
 const OrderTable = (props: orderTableProps) => {
+  const initialOrders: OrderInTable[] = Object.values(OrderType).map(type => ({
+    description: type,
+    isEnabled: false,
+    unitPrice: 0,
+    quantity: 1,
+    unit: undefined
+  }))
   const [filterValue, setFilterValue] = React.useState('')
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
   )
   const [rowsPerPage, setRowsPerPage] = React.useState(2)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'unit',
+    column: 'description',
     direction: 'ascending',
   })
 
   const [page, setPage] = React.useState(1)
 
-  const [ordersInTable, setOrdersInTable] = React.useState<OrderInTable[]>([])
+  const [ordersInTable, setOrdersInTable] = React.useState<OrderInTable[]>(initialOrders)
+  const [ordersToSend, setOrdersToSend] = React.useState<Partial<Order>[]>([])
 
   const hasSearchFilter = Boolean(filterValue)
 
   const addOrder =  (order: OrderInTable) => {
-    setOrdersInTable([...ordersInTable, order])
+    setOrdersToSend(prevOrders => [...prevOrders, order])
   }
 
   // Function to delete an activity by name
   const deleteOrder = (orderName: string) => {
-    setOrdersInTable(prevOrders =>
-      prevOrders.filter(order => order.unit !== orderName)
+    setOrdersToSend(prevOrders =>
+      prevOrders.filter(order => order.description !== orderName)
     );
   };
 
-// Function to edit an activity by name
-const editOrder = (orderName: string, updatedOrder: Partial<OrderInTable>) => {
-  setOrdersInTable(prevOrders => {
-    const index = prevOrders.findIndex(order => order.unit === orderName);
-    if (index !== -1) {
-      const updatedOrders = [...prevOrders];
-      updatedOrders[index] = { ...updatedOrders[index], ...updatedOrder };
-      return updatedOrders;
-    }
-    console.log(`Order with name "${orderName}" not found.`);
-    return prevOrders;
-  });
-};
+  useEffect(() => {
+    props.update(ordersToSend)
+  }, [ordersToSend])
 
   useEffect(() => {
-    props.update(ordersInTable)
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
         setVisibleColumns(new Set(['unit', 'unitPrice']))
@@ -1761,7 +738,7 @@ const editOrder = (orderName: string, updatedOrder: Partial<OrderInTable>) => {
 
     if (hasSearchFilter) {
       filteredOrders = filteredOrders.filter((order) =>
-        order.unit.toLowerCase().includes(filterValue.toLowerCase())
+        order.description.toLowerCase().includes(filterValue.toLowerCase())
       )
     }
 
@@ -1822,39 +799,153 @@ const editOrder = (orderName: string, updatedOrder: Partial<OrderInTable>) => {
     setPage(1)
   }, [])
 
+  const handleChange = (newValue: any, order: OrderInTable) => {
+      setOrdersInTable((prevOrders) =>
+        prevOrders.map((o) => 
+          o.description === order.description ? { ...o, unit: newValue} : o
+        ))
+    
+  };
+
   const renderCell = React.useCallback((order: OrderInTable, columnKey: React.Key) => {
     const cellValue = order[columnKey as keyof OrderInTable]
     switch (columnKey) {
-      case 'unit':
+      case 'description':
         return (
           <div>
-            <p className="text-bold">{order.unit}</p>
+            <p className="text-bold">{order.description}</p>
           </div>
+        )
+      case 'unit':
+        return (
+                  <Autocomplete
+                    label="Select Unit"
+                    className="mt-4 md:max-w-72"
+                    variant="underlined"
+                    isRequired
+                    value={order.unit}
+                    selectedKey={order.unit}
+                    onSelectionChange={(value) => handleChange(value, order)}
+                    inputProps={{
+                      classNames: {
+                        base: 'bg-white',
+                        inputWrapper:
+                          "px-1 bg-white shadow-none border-b-3 border-light-200 rounded-none after:content-[''] after:w-0 after:origin-center after:absolute after:left-1/2 after:-translate-x-1/2 after:-bottom-[2px] after:h-[2px] data-[open=true]:after:w-full data-[focus=true]:after:w-full after:bg-light-900 after:transition-width motion-reduce:after:transition-none",
+                        label: 'text-light-300 dark:text-secondary-400 text-small',
+                        input: 'text-secondary-950 dark:text-white',
+                      },
+                    }}
+                  >
+                    <AutocompleteItem key={`${UnitType.KG}`} value={`${UnitType.KG}`}>
+                      KG
+                    </AutocompleteItem>
+                    <AutocompleteItem key={`${UnitType.DZ}`} value={`${UnitType.DZ}`}>
+                      DZ
+                    </AutocompleteItem>
+                    <AutocompleteItem key={`${UnitType.UN}`} value={`${UnitType.UN}`}>
+                      UN
+                    </AutocompleteItem>
+                  </Autocomplete>
+                
         )
       case 'unitPrice':
         return (
-          <div>
-            ${order.unitPrice}
-          </div>
+            <Input
+              type='number'
+              value={order.unitPrice?.toString() ?? '0'}
+              placeholder='Set Price'
+              isRequired={true}
+              className="mt-4 md:max-w-72"
+              variant='underlined'
+              onChange={(e) => {
+                const newPrice = parseInt(e.target.value);
+                const {error} = orderSchema.validate({unitPrice: newPrice, quantity: order.quantity});
+  
+                if (error) {
+                  console.error(error.message);
+                  toast.error(error.message);
+                }
+                setOrdersInTable((prevOrders) =>
+                  prevOrders.map((o) =>
+                    o.description === order.description ? { ...o, unitPrice: newPrice } : o)
+                  
+                )
+              }}
+            />
+          )
+      case 'quantity':
+        return (
+          <Input
+            type='number'
+            value={order.quantity?.toString() ?? '1'}
+            placeholder='Set Quantity'
+            isRequired={true}
+            className="mt-4 md:max-w-72"
+            variant='underlined'
+            onChange={(e) => {
+              const newQuantity = parseInt(e.target.value);
+              const {error} = orderSchema.validate({quantity: newQuantity, unitPrice: order.unitPrice});
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              }
+              setOrdersInTable((prevOrders) =>
+                prevOrders.map((o) =>
+                  o.description === order.description ? { ...o, quantity: newQuantity } : o)
+                
+              )
+            }}
+          />
         )
       case 'total':
         return (
         <div>
-            ${order.total}
+            ${order.quantity && order.unitPrice ? (order.quantity * order.unitPrice) : 0}
           </div>
         )
-      case 'action':
-        if (Array.isArray(cellValue)) {
-          return (
-              <div className='flex gap-4'>
-                  <EditOrderFormPopUp edit={editOrder} order={order}/>
-                  <Button onClick={() => deleteOrder(order.unit)} isIconOnly size='sm'>{cellValue[1]}</Button>
-              </div>
-          );
-      } else {
-          console.error("Expected 'action' to be an array, but got:", cellValue);
-          return null;
-      }
+        case 'action':
+          if (order.isEnabled) {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setOrdersInTable(prevOrders =>
+                    prevOrders.map(o =>
+                      o.description === o.description ? { ...o, isEnabled: false } : o
+                    )
+                  );
+                  deleteOrder(order.description);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <Trash2 size={22}/>
+              </Button>
+            );
+          } else {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setOrdersInTable(prevOrders =>
+                    prevOrders.map(o =>
+                      o.description === order.description ? { ...o, isEnabled: true } : o
+                    )
+                  );
+                  addOrder(order);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <PlusIcon size={22} />
+              </Button>
+            );
+          }
       default:
         return cellValue
     }
@@ -1919,7 +1010,6 @@ const editOrder = (orderName: string, updatedOrder: Partial<OrderInTable>) => {
               </DropdownMenu>
             </Dropdown>
           </div>
-              <OrderFormPopUp add={addOrder}/>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
@@ -2002,7 +1092,7 @@ const editOrder = (orderName: string, updatedOrder: Partial<OrderInTable>) => {
           </TableHeader>
           <TableBody emptyContent={'No orders found'} items={sortedItems}>
             {(item) => (
-              <TableRow key={item.unit}>
+              <TableRow key={item.description}>
                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
               </TableRow>
             )}
@@ -2014,49 +1104,46 @@ const editOrder = (orderName: string, updatedOrder: Partial<OrderInTable>) => {
 }
 
 const CakeTable = (props: cakeTableProps) => {
+  const initialCakes: CakeInTable[] = Object.values(CakeDescription).map(type => ({
+    description: type,
+    isEnabled: false,
+    unitPrice: 0,
+    quantity: 1,
+    type: ''
+  }))
   const [filterValue, setFilterValue] = React.useState('')
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_CAKES_VISIBLE_COLUMNS)
   )
   const [rowsPerPage, setRowsPerPage] = React.useState(2)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'type',
+    column: 'description',
     direction: 'ascending',
   })
 
   const [page, setPage] = React.useState(1)
 
-  const [cakesInTable, setCakesInTable] = React.useState<CakeInTable[]>([])
+  const [cakesInTable, setCakesInTable] = React.useState<CakeInTable[]>(initialCakes)
+  const [cakesToSend, setCakesToSend] = React.useState<Partial<Cake>[]>([])
 
   const hasSearchFilter = Boolean(filterValue)
 
   const addCake =  (cake: CakeInTable) => {
-    setCakesInTable([...cakesInTable, cake])
+    setCakesToSend(prevCakes => [...prevCakes, cake])
   }
 
   // Function to delete an activity by name
   const deleteCake = (cakeName: string) => {
-    setCakesInTable(prevCakes =>
-      prevCakes.filter(cake => cake.type !== cakeName)
+    setCakesToSend(prevCakes =>
+      prevCakes.filter(cake => cake.description !== cakeName)
     );
   };
 
-// Function to edit an activity by name
-const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
-  setCakesInTable(prevCakes => {
-    const index = prevCakes.findIndex(cake => cake.type === cakeName);
-    if (index !== -1) {
-      const updatedCakes = [...prevCakes];
-      updatedCakes[index] = { ...updatedCakes[index], ...updatedCake };
-      return updatedCakes;
-    }
-    console.log(`Cake with name "${cakeName}" not found.`);
-    return prevCakes;
-  });
-};
+  useEffect(() => {
+    props.update(cakesToSend)
+  }, [cakesToSend])
 
   useEffect(() => {
-    props.update(cakesInTable)
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
         setVisibleColumns(new Set(['type', 'price']))
@@ -2080,7 +1167,7 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
 
     if (hasSearchFilter) {
       filteredCakes = filteredCakes.filter((cake) =>
-        cake.type.toLowerCase().includes(filterValue.toLowerCase())
+        cake.description.toLowerCase().includes(filterValue.toLowerCase())
       )
     }
 
@@ -2144,32 +1231,137 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
   const renderCell = React.useCallback((cake: CakeInTable, columnKey: React.Key) => {
     const cellValue = cake[columnKey as keyof CakeInTable]
     switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{cake.description}</p>
+          </div>
+        )
       case 'type':
         return (
-          <div>
-            <p className="text-bold">{cake.type}</p>
-          </div>
+          <Input
+                type='text'
+                value={cake.type ?? ''}
+                placeholder='Enter Type'
+                isRequired={true}
+                className="mt-4 md:max-w-72"
+                variant='underlined'
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  const {error} = cakeSchema.validate({unitPrice: cake.unitPrice, quantity: cake.quantity, type: newType});
+    
+                  if (error) {
+                    console.error(error.message);
+                    toast.error(error.message);
+                  }
+                  setCakesInTable((prevCakes) =>
+                    prevCakes.map((c) =>
+                      c.description === cake.description ? { ...c, type: newType } : c)
+                    
+                  )
+                }}
+              />
         )
-      case 'price':
-        return (
-          <div>
-            ${cake.price}
-          </div>
-        )
-      case 'action':
-        if (Array.isArray(cellValue)) {
+      case 'unitPrice':
           return (
-              <div className='flex gap-4'>
-                  <EditCakeFormPopUp edit={editCake} cake={cake}/>
-                  <Button onClick={() => deleteCake(cake.type)} isIconOnly size='sm'>{cellValue[1]}</Button>
-              </div>
-          );
-      } else {
-          console.error("Expected 'action' to be an array, but got:", cellValue);
-          return null;
-      }
-      default:
-        return cellValue
+              <Input
+                type='number'
+                value={cake.unitPrice?.toString() ?? '0'}
+                placeholder='Set Price'
+                isRequired={true}
+                className="mt-4 md:max-w-72"
+                variant='underlined'
+                onChange={(e) => {
+                  const newPrice = parseInt(e.target.value);
+                  const {error} = cakeSchema.validate({unitPrice: newPrice, quantity: cake.quantity, type: cake.type});
+    
+                  if (error) {
+                    console.error(error.message);
+                    toast.error(error.message);
+                  }
+                  setCakesInTable((prevCakes) =>
+                    prevCakes.map((c) =>
+                      c.description === cake.description ? { ...c, unitPrice: newPrice } : c)
+                    
+                  )
+                }}
+              />
+            )
+        case 'quantity':
+          return (
+            <Input
+              type='number'
+              value={cake.quantity?.toString() ?? '1'}
+              placeholder='Set Quantity'
+              isRequired={true}
+              className="mt-4 md:max-w-72"
+              variant='underlined'
+              onChange={(e) => {
+                const newQuantity = parseInt(e.target.value);
+                const {error} = cakeSchema.validate({quantity: newQuantity, unitPrice: cake.unitPrice, type: cake.type});
+  
+                if (error) {
+                  console.error(error.message);
+                  toast.error(error.message);
+                }
+                setCakesInTable((prevCakes) =>
+                  prevCakes.map((c) =>
+                    c.description === cake.description ? { ...c, quantity: newQuantity } : c)
+                  
+                )
+              }}
+            />
+          )
+        case 'total':
+          return (
+          <div>
+              ${cake.quantity && cake.unitPrice ? (cake.quantity * cake.unitPrice) : 0}
+            </div>
+          )
+          case 'action':
+            if (cake.isEnabled) {
+              return (
+                <Button
+                color="danger"
+                radius="sm"
+                variant="solid"
+                  onClick={() => {
+                    setCakesInTable(prevCakes =>
+                      prevCakes.map(c =>
+                        c.description === c.description ? { ...c, isEnabled: false } : c
+                      )
+                    );
+                    deleteCake(cake.description);
+                  }}
+                  isIconOnly
+                  size='sm'
+                >
+                  <Trash2 size={22}/>
+                </Button>
+              );
+            } else {
+              return (
+                <Button
+                color="danger"
+                radius="sm"
+                variant="solid"
+                  onClick={() => {
+                    setCakesInTable(prevCakes =>
+                      prevCakes.map(c =>
+                        c.description === cake.description ? { ...c, isEnabled: true } : c
+                      )
+                    );
+                    addCake(cake);
+                  }}
+                  isIconOnly
+                  size='sm'
+                >
+                  <PlusIcon size={22} />
+                </Button>
+              );
+            }
+        default:
+          return cellValue
     }
   }, [])
 
@@ -2232,7 +1424,6 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
               </DropdownMenu>
             </Dropdown>
           </div>
-              <CakeFormPopUp add={addCake}/>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
@@ -2315,7 +1506,7 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
           </TableHeader>
           <TableBody emptyContent={'No cakes found'} items={sortedItems}>
             {(item) => (
-              <TableRow key={item.type}>
+              <TableRow key={item.description}>
                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
               </TableRow>
             )}
@@ -2327,49 +1518,45 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
 }
 
 const ExtraTable = (props: extraTableProps) => {
+  const initialExtras: ExtraInTable[] = Object.values(ExtraType).map(type => ({
+    description: type,
+    isEnabled: false,
+    unitPrice: 0,
+    quantity: 1,
+  }))
   const [filterValue, setFilterValue] = React.useState('')
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
   )
   const [rowsPerPage, setRowsPerPage] = React.useState(2)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'unitPrice',
+    column: 'description',
     direction: 'ascending',
   })
 
   const [page, setPage] = React.useState(1)
 
-  const [extrasInTable, setExtrasInTable] = React.useState<ExtraInTable[]>([])
+  const [extrasInTable, setExtrasInTable] = React.useState<ExtraInTable[]>(initialExtras)
+  const [extrasToSend, setExtrasToSend] = React.useState<Partial<Extra>[]>([])
 
   const hasSearchFilter = Boolean(filterValue)
 
   const addExtra =  (extra: ExtraInTable) => {
-    setExtrasInTable([...extrasInTable, extra])
+    setExtrasToSend(prevExtras => [...prevExtras, extra])
   }
 
   // Function to delete an activity by name
   const deleteExtra = (extraDesc: string) => {
-    setExtrasInTable(prevExtras =>
+    setExtrasToSend(prevExtras =>
       prevExtras.filter(extra => extra.description !== extraDesc)
     );
   };
 
-// Function to edit an activity by name
-const editExtra = (extraDesc: string, updatedExtra: Partial<ExtraInTable>) => {
-  setExtrasInTable(prevExtras => {
-    const index = prevExtras.findIndex(extra => extra.description === extraDesc);
-    if (index !== -1) {
-      const updatedExtras = [...prevExtras];
-      updatedExtras[index] = { ...updatedExtras[index], ...updatedExtra };
-      return updatedExtras;
-    }
-    console.log(`Order with name "${extraDesc}" not found.`);
-    return prevExtras;
-  });
-};
+  useEffect(() => {
+    props.update(extrasToSend)
+  }, [extrasToSend])
 
   useEffect(() => {
-    props.update(extrasInTable)
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
         setVisibleColumns(new Set(['description', 'unitPrice']))
@@ -2457,30 +1644,110 @@ const editExtra = (extraDesc: string, updatedExtra: Partial<ExtraInTable>) => {
   const renderCell = React.useCallback((extra: ExtraInTable, columnKey: React.Key) => {
     const cellValue = extra[columnKey as keyof ExtraInTable]
     switch (columnKey) {
-      case 'unitPrice':
+      case 'description':
         return (
           <div>
-            ${extra.unitPrice}
+            <p className="text-bold">{extra.description}</p>
           </div>
+        )
+      case 'unitPrice':
+        return (
+            <Input
+              type='number'
+              value={extra.unitPrice?.toString() ?? '0'}
+              placeholder='Set Price'
+              isRequired={true}
+              className="mt-4 md:max-w-72"
+              variant='underlined'
+              onChange={(e) => {
+                const newPrice = parseInt(e.target.value);
+                const {error} = extraSchema.validate({unitPrice: newPrice, quantity: extra.quantity});
+  
+                if (error) {
+                  console.error(error.message);
+                  toast.error(error.message);
+                }
+                setExtrasInTable((prevExtras) =>
+                  prevExtras.map((e) =>
+                    e.description === extra.description ? { ...e, unitPrice: newPrice } : e)
+                  
+                )
+              }}
+            />
+          )
+      case 'quantity':
+        return (
+          <Input
+            type='number'
+            value={extra.quantity?.toString() ?? '1'}
+            placeholder='Set Quantity'
+            isRequired={true}
+            className="mt-4 md:max-w-72"
+            variant='underlined'
+            onChange={(e) => {
+              const newQuantity = parseInt(e.target.value);
+              const {error} = extraSchema.validate({quantity: newQuantity, unitPrice: extra.unitPrice});
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              }
+              setExtrasInTable((prevExtras) =>
+                prevExtras.map((e) =>
+                  e.description === extra.description ? { ...e, quantity: newQuantity } : e)
+                
+              )
+            }}
+          />
         )
       case 'total':
         return (
         <div>
-            ${extra.total}
+            ${extra.quantity && extra.unitPrice ? (extra.quantity * extra.unitPrice) : 0}
           </div>
         )
-      case 'action':
-        if (Array.isArray(cellValue)) {
-          return (
-              <div className='flex gap-4'>
-                  <EditExtraFormPopUp edit={editExtra} extra={extra}/>
-                  <Button onClick={() => deleteExtra(extra.description)} isIconOnly size='sm'>{cellValue[1]}</Button>
-              </div>
-          );
-      } else {
-          console.error("Expected 'action' to be an array, but got:", cellValue);
-          return null;
-      }
+        case 'action':
+          if (extra.isEnabled) {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setExtrasInTable(prevExtras =>
+                    prevExtras.map(e =>
+                      e.description === e.description ? { ...e, isEnabled: false } : e
+                    )
+                  );
+                  deleteExtra(extra.description);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <Trash2 size={22}/>
+              </Button>
+            );
+          } else {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setExtrasInTable(prevExtras =>
+                    prevExtras.map(e =>
+                      e.description === extra.description ? { ...e, isEnabled: true } : e
+                    )
+                  );
+                  addExtra(extra);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <PlusIcon size={22} />
+              </Button>
+            );
+          }
       default:
         return cellValue
     }
@@ -2545,7 +1812,6 @@ const editExtra = (extraDesc: string, updatedExtra: Partial<ExtraInTable>) => {
               </DropdownMenu>
             </Dropdown>
           </div>
-              <ExtraFormPopUp add={addExtra}/>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
@@ -2662,6 +1928,7 @@ export default function CreateEventPage() {
 
   const update = (activities: ActivityInTable[]) => {
     setAcitivities(activities)
+    console.log(activities)
   }
 
   const updateOrders = (orders: OrderInTable[]) => {
@@ -2703,7 +1970,6 @@ export default function CreateEventPage() {
 
     try {
       let newActivities = activities.map((activity: ActivityInTable) => ({
-        name: activity.name,
         description: activity.description,
         price: activity.price
       }))
@@ -2718,7 +1984,8 @@ export default function CreateEventPage() {
       let newCakes = cakes.map((cake: CakeInTable) => ({
         description: cake.description,
         type: cake.type,
-        price: cake.price
+        unitPrice: cake.unitPrice,
+        quantity: cake.quantity
       }))
 
       let newExtras = extras.map((extra: ExtraInTable) => ({

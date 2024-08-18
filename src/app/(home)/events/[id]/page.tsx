@@ -37,16 +37,15 @@ import toast from 'react-hot-toast'
 import { ActivitiesApi } from '@/api/activity.api'
 import { useQuery } from '@tanstack/react-query'
 import { ApiResponse, ServerError } from '@/api/utils'
-import { Activity } from '@/api/models/Activity.model'
+import { Activity, ActivityType } from '@/api/models/Activity.model'
 import { OrdersApi } from '@/api/order.api'
-import { Order } from '@/api/models/Order.model'
+import { Order, OrderType, UnitType } from '@/api/models/Order.model'
 import { CakesApi } from '@/api/cake.api'
-import { Cake } from '@/api/models/Cake.model'
+import { Cake, CakeDescription } from '@/api/models/Cake.model'
 import { ExtrasApi } from '@/api/extra.api'
-import { Extra } from '@/api/models/Extra.model'
+import { Extra, ExtraType } from '@/api/models/Extra.model'
 
 const INITIAL_VISIBLE_COLUMNS = [
-  'name',
   'description',
   'price',
 ]
@@ -60,9 +59,12 @@ const INITIAL_ORDERS_VISIBLE_COLUMNS = [
 ]
 
 const INITIAL_CAKES_VISIBLE_COLUMNS = [
-  'type',
   'description',
-  'price',
+  'type',
+  'unitPrice',
+  'quantity',
+  'total',
+  'action',
 ]
 
 const INITIAL_EXTRAS_VISIBLE_COLUMNS = [
@@ -73,7 +75,6 @@ const INITIAL_EXTRAS_VISIBLE_COLUMNS = [
 ]
 
 const columns = [
-  { name: 'Name', uid: 'name', sortable: true},
   { name: 'Description', uid: 'description', sortable: true},
   { name: 'Price', uid: 'price', sortable: true},
 ]
@@ -87,9 +88,12 @@ const orderColumns = [
 ]
 
 const cakeColumns = [
-  { name: 'Type', uid: 'type', sortable: true},
   { name: 'Description', uid: 'description', sortable: true},
-  { name: 'Price', uid: 'price', sortable: true},
+  { name: 'Type', uid: 'type', sortable: true},
+  { name: 'Unit Price', uid: 'unitPrice', sortable: true},
+  { name: 'Quantity', uid: 'quantity', sortable: true},
+  { name: 'Total', uid: 'total', sortable: true},
+  { name: 'Actions', uid: 'action', sortable: false},
 ]
 
 const extraColumns = [
@@ -113,14 +117,13 @@ type TableProps = {
 }
 
 type ActivityInTable = {
-  name: string
-  description: string
+  description: ActivityType
   price: number
 }
 
 type OrderInTable = {
-  description: string
-  unit: string
+  description: OrderType
+  unit: UnitType
   unitPrice: number
   quantity: number
   total?: number
@@ -128,12 +131,14 @@ type OrderInTable = {
 
 type CakeInTable = {
   type: string
-  description: string
-  price: number
+  description: CakeDescription
+  unitPrice: number
+  quantity: number
+  total?: number
 }
 
 type ExtraInTable = {
-  description: string
+  description: ExtraType
   unitPrice: number
   quantity: number
   total?: number
@@ -175,7 +180,6 @@ const ActivityTable = (props: TableProps) => {
       if (foundActivity && foundActivity.length > 0) { // Check for existence before accessing elements
         const filteredActivities: ActivityInTable[] = foundActivity.map(
           (activity) => ({
-            name: activity.name, // Assuming these properties exist in activities.payload
             description: activity.description,
             price: activity.price,
           })
@@ -218,7 +222,7 @@ const ActivityTable = (props: TableProps) => {
 
     if (hasSearchFilter) {
       filteredActivities = filteredActivities.filter((activity) =>
-        activity.name.toLowerCase().includes(filterValue.toLowerCase())
+        activity.description.toLowerCase().includes(filterValue.toLowerCase())
       )
     }
 
@@ -282,10 +286,10 @@ const ActivityTable = (props: TableProps) => {
   const renderCell = React.useCallback((activity: ActivityInTable, columnKey: React.Key) => {
     const cellValue = activity[columnKey as keyof ActivityInTable]
     switch (columnKey) {
-      case 'name':
+      case 'description':
         return (
           <div>
-            <p className="text-bold">{activity.name}</p>
+            <p className="text-bold">{activity.description}</p>
           </div>
         )
       case 'price':
@@ -440,7 +444,7 @@ const ActivityTable = (props: TableProps) => {
           </TableHeader>
           <TableBody emptyContent={'No activities found'} items={sortedItems}>
             {(item) => (
-              <TableRow key={item.name}>
+              <TableRow key={item.description}>
                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
               </TableRow>
             )}
@@ -466,7 +470,7 @@ const OrderTable = (props: TableProps) => {
   )
   const [rowsPerPage, setRowsPerPage] = React.useState(2)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'unit',
+    column: 'description',
     direction: 'ascending',
   })
 
@@ -781,7 +785,7 @@ const CakeTable = (props: TableProps) => {
   )
   const [rowsPerPage, setRowsPerPage] = React.useState(2)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: 'type',
+    column: 'description',
     direction: 'ascending',
   })
 
@@ -800,11 +804,13 @@ const CakeTable = (props: TableProps) => {
           const filteredCake: CakeInTable[] = foundCake.map((cake)=>({
               type: cake.type,
               description: cake.description,
-              price: cake.price,
+              unitPrice: cake.unitPrice,
+              quantity: cake.quantity,
+              total: (cake.unitPrice * cake.quantity)
           }));
 
           let totalPrice = filteredCake.reduce(
-            (sum, cake) => sum + cake.price,
+            (sum, cake) => sum + cake.total!,
             0
           );
   
@@ -904,18 +910,24 @@ const CakeTable = (props: TableProps) => {
   const renderCell = React.useCallback((cake: CakeInTable, columnKey: React.Key) => {
     const cellValue = cake[columnKey as keyof CakeInTable]
     switch (columnKey) {
-      case 'type':
+      case 'description':
         return (
           <div>
-            <p className="text-bold">{cake.type}</p>
+            <p className="text-bold">{cake.description}</p>
           </div>
         )
-      case 'price':
-        return (
+        case 'unitPrice':
+          return (
+            <div>
+              ${cake.unitPrice}
+            </div>
+          )
+        case 'total':
+          return (
           <div>
-            ${cake.price}
-          </div>
-        )
+              ${cake.total}
+            </div>
+          )
       default:
         return cellValue
     }
@@ -1062,7 +1074,7 @@ const CakeTable = (props: TableProps) => {
           </TableHeader>
           <TableBody emptyContent={'No cakes found'} items={sortedItems}>
             {(item) => (
-              <TableRow key={item.type}>
+              <TableRow key={item.description}>
                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
               </TableRow>
             )}
@@ -1212,6 +1224,12 @@ const ExtraTable = (props: TableProps) => {
   const renderCell = React.useCallback((extra: ExtraInTable, columnKey: React.Key) => {
     const cellValue = extra[columnKey as keyof ExtraInTable]
     switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{extra.description}</p>
+          </div>
+        )
       case 'unitPrice':
         return (
           <div>

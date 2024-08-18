@@ -103,6 +103,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } as Event)
 
       for (let activity of activities) {
+        console.log(activity);
         try {
           let newActivity = {
             ...activity,
@@ -111,7 +112,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
           await activitiesApi.createActivity(newActivity)
         } catch (error) {
-          console.error(`Failed to save activity: ${activity.name}`, error)
+          console.error(`Failed to save activity: ${activity.description}`, error)
         }
       }
 
@@ -129,6 +130,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       for (let cake of cakes) {
+        console.log(cake)
         try {
           let newCake = {
             ...cake,
@@ -142,6 +144,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       for (let extra of extras) {
+        console.log(extra)
         try {
           let newExtra = {
             ...extra,
@@ -248,7 +251,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             let newActivityWithEventId = { ...newActivity, eventId: id } as Activity
             await activitiesApi.createActivity(newActivityWithEventId)
           } catch (error) {
-            console.error(`Failed to save new activity: ${newActivity.name}`, error)
+            console.error(`Failed to save new activity: ${newActivity.description}`, error)
           }
         }
 
@@ -259,7 +262,7 @@ export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               await activitiesApi.updateActivity(updatedActivity.id, updatedActivity)
             }
           } catch (error) {
-            console.error(`Failed to update activity: ${updatedActivity.name}`, error)
+            console.error(`Failed to update activity: ${updatedActivity.description}`, error)
           }
         }
 
