@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useEvents } from '../../contexts/EventContext'
 import { Event } from '@/api/models/Event.model'
 import { toCapitalCase } from '@/utils/string'
+import { jsPDF } from 'jspdf';
 import {
   Button,
   Dropdown,
@@ -27,7 +28,7 @@ import {
   TableRow,
   useDisclosure,
 } from '@nextui-org/react'
-import { ChevronDownIcon, Coins, DoorClosed, Edit, Plus, Search } from 'lucide-react'
+import { ChevronDownIcon, Coins, DoorClosed, Edit, Plus, PrinterIcon, Search } from 'lucide-react'
 import { zonedFormatDate } from '@/utils/date'
 import Link from 'next/link'
 import { joiResolver } from '@hookform/resolvers/joi'
@@ -191,7 +192,7 @@ const ActivityTable = (props: TableProps) => {
         );
 
         if (props.update) {
-          props.update(totalPrice)
+          props.update(totalPrice, filteredActivities)
         }
 
         setActivitiesInTable(filteredActivities);
@@ -500,7 +501,7 @@ const OrderTable = (props: TableProps) => {
           );
   
           if (props.update) {
-            props.update(totalPrice)
+            props.update(totalPrice, filteredOrder)
           }
   
           setOrdersInTable(filteredOrder);
@@ -815,7 +816,7 @@ const CakeTable = (props: TableProps) => {
           );
   
           if (props.update) {
-            props.update(totalPrice)
+            props.update(totalPrice, filteredCake)
           }
   
           setCakesInTable(filteredCake);
@@ -1129,7 +1130,7 @@ const ExtraTable = (props: TableProps) => {
           );
   
           if (props.update) {
-            props.update(totalPrice)
+            props.update(totalPrice, filteredExtra)
           }
   
           setExtrasInTable(filteredExtra);
@@ -1412,6 +1413,11 @@ const Page = ({ params }: Props) => {
   const [orderTotal, setOrderTotal] = useState<number>(0)
   const [cakeTotal, setCakeTotal] = useState<number>(0)
   const [extraTotal, setExtraTotal] = useState<number>(0)
+  const [date, setDate] = useState<string>('')
+  const [activitiesInTable, setActivitiesInTable] = useState<ActivityInTable[]>([])
+  const [ordersInTable, setOrdersInTable] = useState<OrderInTable[]>([])
+  const [cakesInTable, setCakesInTable] = useState<CakeInTable[]>([])
+  const [extrasInTable, setExtrasInTable] = useState<ExtraInTable[]>([])
   const { isOpen, onOpen, onOpenChange } = useDisclosure()
 
   useEffect(() => {
@@ -1427,6 +1433,7 @@ const Page = ({ params }: Props) => {
         setRemaining(eventData.remaining)
         setPaidAmount(eventData.paidAmount)
         setMinimumCharge(eventData.minimumCharge)
+        setDate(`${eventData.startDate} - ${eventData.endDate}`)
       }
     }
   
@@ -1434,20 +1441,221 @@ const Page = ({ params }: Props) => {
     fetchEvent()
   }, [params.id, getEvent])
 
-  const updateActivity = (total: number) => {
+  const printPDF = () => {
+    const doc = new jsPDF();
+    const titleFontSize = 22;
+    const subTitleFontSize = 16;
+    const textFontSize = 12;
+    const lineHeight = 8;
+    const marginX = 25;
+    const tableMarginX = 15;
+    const tableWidth = 180;
+    let currentY = 30;
+
+    const drawSectionDivider = () => {
+        currentY += 5;
+        doc.setLineWidth(0.75);
+        doc.setDrawColor(150, 150, 150); // Gray color
+        doc.line(marginX, currentY, doc.internal.pageSize.getWidth() - marginX, currentY);
+        currentY += 10;
+    };
+
+    const addTableHeader = (headers: any) => {
+        doc.setFontSize(subTitleFontSize);
+        doc.setFillColor(230, 230, 250); // Light lavender background
+        doc.setTextColor(0, 0, 0); // Black text color
+        doc.rect(tableMarginX, currentY, tableWidth, lineHeight + 2, 'F'); // Fill with color
+
+        headers.forEach((header: any, index: any) => {
+            const headerX = tableMarginX + index * (tableWidth / headers.length);
+            doc.text(header, headerX + 5, currentY + lineHeight);
+        });
+        currentY += lineHeight + 2;
+        drawSectionDivider();
+    };
+
+    const addTableRow = (columns: any) => {
+        doc.setFontSize(textFontSize);
+        columns.forEach((column: any, index: any) => {
+            const columnX = tableMarginX + index * (tableWidth / columns.length);
+            doc.text(column, columnX + 5, currentY + lineHeight);
+        });
+        currentY += lineHeight + 2;
+    };
+
+    const addFooter = () => {
+        const footerText = 'Thank you for choosing our service!';
+    };
+
+    if (event) {
+        // Add logo at the top
+        // const logo = new Image();
+        // logo.src = 'path/to/logo.png'; // Update this with the correct path to your logo
+        // doc.addImage(logo, 'PNG', marginX, 10, 50, 15);
+
+        // Title and Event Date on the first page
+        currentY += 20;
+        doc.setFont("Helvetica", "bold");
+        doc.setFontSize(titleFontSize);
+        doc.text(`Event Details: ${event.title}`, marginX, currentY);
+        currentY += lineHeight + 5;
+
+        doc.setFont("Helvetica", "normal");
+        doc.setFontSize(textFontSize);
+        doc.text(date, marginX, currentY);
+        currentY += lineHeight + 10;
+
+        // Event Info on the first page with a box around it
+        doc.setFontSize(subTitleFontSize);
+        doc.setFillColor(230, 230, 250); // Light lavender background
+        doc.rect(marginX - 5, currentY - 5, 170, lineHeight * 9 + 15, 'F');
+
+        currentY += 5;
+
+        doc.text('Event Information', marginX, currentY);
+        currentY += lineHeight;
+
+        doc.setFontSize(textFontSize);
+        doc.text(`Category: ${category()}`, marginX, currentY);
+        currentY += lineHeight;
+        doc.text(`Location: ${location()}`, marginX, currentY);
+        currentY += lineHeight;
+        doc.text(`Event Amount: $${event.price}`, marginX, currentY);
+        currentY += lineHeight;
+        doc.text(`Extra Kid Charge: $${event.extraKidPrice}`, marginX, currentY);
+        currentY += lineHeight;
+        doc.text(`Minimum Charge: $${event.minimumCharge}`, marginX, currentY);
+        currentY += lineHeight;
+        doc.text(`Deposit: $${event.deposit}`, marginX, currentY);
+        currentY += lineHeight;
+        doc.text(`Paid Amount: $${event.paidAmount}`, marginX, currentY);
+        currentY += lineHeight;
+        doc.text(`Remaining: $${event.remaining}`, marginX, currentY);
+        currentY += lineHeight + 10;
+
+        // Move to the second page for tables
+        doc.addPage();
+        currentY = 30;
+
+        // Activities Table
+        if (activitiesInTable.length > 0) {
+            doc.setFontSize(subTitleFontSize);
+            doc.text('Activities', marginX, currentY);
+            currentY += lineHeight;
+
+            addTableHeader(['Description', 'Price']);
+
+            activitiesInTable.forEach((activity) => {
+                addTableRow([activity.description, `$${activity.price}`]);
+            });
+
+            currentY += lineHeight + 10;
+        }
+
+        // Orders Table
+        if (ordersInTable.length > 0) {
+            doc.setFontSize(subTitleFontSize);
+            doc.text('Orders', marginX, currentY);
+            currentY += lineHeight;
+
+            addTableHeader(['Description', 'Unit Price', 'Quantity', 'Total']);
+
+            ordersInTable.forEach((order) => {
+                addTableRow([order.description, `$${order.unitPrice}`, `${order.quantity}`, `$${order.total}`]);
+            });
+
+            currentY += lineHeight + 10;
+        }
+
+        // Cakes Table
+        if (cakesInTable.length > 0) {
+            doc.setFontSize(subTitleFontSize);
+            doc.text('Cakes', marginX, currentY);
+            currentY += lineHeight;
+
+            addTableHeader(['Type', 'Description', 'Unit Price', 'Quantity', 'Total']);
+
+            cakesInTable.forEach((cake) => {
+                addTableRow([cake.type, cake.description, `$${cake.unitPrice}`, `${cake.quantity}`, `$${cake.total}`]);
+            });
+
+            currentY += lineHeight + 10;
+        }
+
+        // Extras Table
+        if (extrasInTable.length > 0) {
+            doc.setFontSize(subTitleFontSize);
+            doc.text('Extra Decorations and Themes', marginX, currentY);
+            currentY += lineHeight;
+
+            addTableHeader(['Description', 'Quantity', 'Unit Price', 'Total']);
+
+            extrasInTable.forEach((extra) => {
+                addTableRow([extra.description, `${extra.quantity}`, `$${extra.unitPrice}`, `$${extra.total}`]);
+            });
+
+            currentY += lineHeight + 10;
+        }
+
+        // Grand Total on second page
+        const grandTotal = (
+            activityTotal +
+            Number((orderTotal * 1.11).toFixed(2)) +
+            cakeTotal +
+            extraTotal +
+            event.extraKidPrice +
+            event.minimumCharge +
+            event.price -
+            event.paidAmount
+        ).toFixed(2);
+
+        doc.setFontSize(titleFontSize);
+        doc.setFont("Helvetica", "bold");
+        doc.text('Grand Total', marginX, currentY);
+        currentY += lineHeight;
+        doc.setFontSize(textFontSize);
+        doc.setFont("Helvetica", "normal");
+        doc.text(`$${grandTotal}`, doc.internal.pageSize.getWidth() - marginX, currentY, { align: 'right' });
+        currentY += lineHeight + 10;
+
+        // Add footer with page number and thank you note
+        addFooter();
+
+        // Open the PDF in a new window
+        const pdfData = doc.output('blob');
+        const pdfUrl = URL.createObjectURL(pdfData);
+        const newWindow = window.open(pdfUrl);
+
+        // Trigger the print dialog
+        if (newWindow) {
+            newWindow.onload = () => {
+                newWindow.print();
+            };
+        }
+    }
+};
+
+
+
+
+  const updateActivity = (total: number, activities: ActivityInTable[]) => {
     setActivityTotal(total);
+    setActivitiesInTable(activities);
   }
 
-  const updateOrder = (total: number) => {
+  const updateOrder = (total: number, orders: OrderInTable[]) => {
     setOrderTotal(total);
+    setOrdersInTable(orders);
   }
 
-  const updateCake = (total: number) => {
+  const updateCake = (total: number, cakes: CakeInTable[]) => {
     setCakeTotal(total);
+    setCakesInTable(cakes);
   }
 
-  const updateExtra = (total: number) => {
+  const updateExtra = (total: number, extras: ExtraInTable[]) => {
     setExtraTotal(total);
+    setExtrasInTable(extras);
   }
 
   const category = () => {
@@ -1585,6 +1793,10 @@ const Page = ({ params }: Props) => {
             <p className="hidden font-semibold lg:block">Add Payment</p>
             <Coins size={20} />
           </button>
+          <button className='flex items-center gap-2 rounded-md bg-light-100 p-3' onClick={printPDF}>
+            <p className='hidden font-semibold lg:block'>Print Event Details</p>
+            <PrinterIcon size={20} />
+            </button>
         </div>
       </div>
       <div className="pt-4">
@@ -1748,7 +1960,7 @@ const Page = ({ params }: Props) => {
         <div className='flex items-center justify-between'>
           <p className='text-md text-light-300'>Orders Total Price</p>
           {orderTotal ? (
-            <p className='text-md text-light-400'>${orderTotal}</p>
+            <p className='text-md text-light-400'>${(orderTotal * 1.11).toFixed(2)}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
@@ -1798,7 +2010,7 @@ const Page = ({ params }: Props) => {
         <div className="flex items-center justify-between">
           <p className="text-md text-light-300">Grand Total</p>
           {event ? (
-            <p className="text-md text-light-400">${(activityTotal + orderTotal + cakeTotal + extraTotal + extraKidPrice + minimumCharge + price) - paidAmount}</p>
+            <p className="text-md text-light-400">${(activityTotal + Number((orderTotal * 1.11).toFixed(2)) + cakeTotal + extraTotal + extraKidPrice + minimumCharge + price) - paidAmount}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
