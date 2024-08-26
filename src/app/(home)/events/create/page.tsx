@@ -32,7 +32,8 @@ import {
   ModalBody,
   useDisclosure,
   ModalContent,
-  ModalFooter
+  ModalFooter,
+  Skeleton
 } from '@nextui-org/react'
 import Joi, { number } from 'joi'
 import React, { useEffect, useState } from 'react'
@@ -328,7 +329,7 @@ const ActivityTable = (props: ActivityTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(4)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -353,7 +354,11 @@ const ActivityTable = (props: ActivityTableProps) => {
   };
 
   useEffect(() => {
-    props.update(activitiesToSend)
+    let totalPrice = activitiesToSend.reduce(
+      (sum, activity) => sum + activity.price!,
+      0
+    );
+    props.update(activitiesToSend, totalPrice)
   }, [activitiesToSend])
 
   useEffect(() => {
@@ -686,7 +691,7 @@ const OrderTable = (props: orderTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(3)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -711,7 +716,11 @@ const OrderTable = (props: orderTableProps) => {
   };
 
   useEffect(() => {
-    props.update(ordersToSend)
+    let totalPrice = ordersToSend.reduce(
+      (sum, order) => sum + order.unitPrice!,
+      0
+    );
+    props.update(ordersToSend, totalPrice)
   }, [ordersToSend])
 
   useEffect(() => {
@@ -1115,7 +1124,7 @@ const CakeTable = (props: cakeTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_CAKES_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(3)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -1140,7 +1149,11 @@ const CakeTable = (props: cakeTableProps) => {
   };
 
   useEffect(() => {
-    props.update(cakesToSend)
+    let totalPrice = cakesToSend.reduce(
+      (sum, cake) => sum + cake.unitPrice!,
+      0
+    );
+    props.update(cakesToSend, totalPrice)
   }, [cakesToSend])
 
   useEffect(() => {
@@ -1528,7 +1541,7 @@ const ExtraTable = (props: extraTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(4)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -1553,7 +1566,11 @@ const ExtraTable = (props: extraTableProps) => {
   };
 
   useEffect(() => {
-    props.update(extrasToSend)
+    let totalPrice = extrasToSend.reduce(
+      (sum, extra) => sum + extra.unitPrice!,
+      0
+    );
+    props.update(extrasToSend, totalPrice)
   }, [extrasToSend])
 
   useEffect(() => {
@@ -1920,27 +1937,39 @@ const Section = (props: SectionProps) => {
 
 export default function CreateEventPage() {
   const { createEvent } = useEvents()
-  const [activities, setAcitivities] = React.useState<ActivityInTable[]>([])
+  const [activities, setActivities] = React.useState<ActivityInTable[]>([])
   const [orders, setOrders] = React.useState<OrderInTable[]>([])
   const [cakes, setCakes] = React.useState<CakeInTable[]>([])
   const [extras, setExtras] = React.useState<ExtraInTable[]>([])
+  const [activityTotal, setActivityTotal] = useState<number>(0)
+  const [orderTotal, setOrderTotal] = useState<number>(0)
+  const [cakeTotal, setCakeTotal] = useState<number>(0)
+  const [extraTotal, setExtraTotal] = useState<number>(0)
+  const [price, setPrice] = useState<number>(0)
+  const [extraKidPrice, setExtraKidPrice] = useState<number>(0)
+  const [minimumCharge, setMinimumCharge] = useState<number>(0)
+  const [paidAmount, setPaidAmount] = useState<number>(0)
   const router = useRouter()
 
-  const update = (activities: ActivityInTable[]) => {
-    setAcitivities(activities)
+  const update = (activities: ActivityInTable[], total: number) => {
+    setActivities(activities)
+    setActivityTotal(total)
     console.log(activities)
   }
 
-  const updateOrders = (orders: OrderInTable[]) => {
+  const updateOrders = (orders: OrderInTable[], total: number) => {
     setOrders(orders)
+    setOrderTotal(total)
   }
 
-  const updateCakes = (cakes: CakeInTable[]) => {
+  const updateCakes = (cakes: CakeInTable[], total: number) => {
     setCakes(cakes);
+    setCakeTotal(total)
   }
 
-  const updateExtras = (extras: ExtraInTable[]) => {
+  const updateExtras = (extras: ExtraInTable[], total: number) => {
     setExtras(extras);
+    setExtraTotal(total);
   }
 
   const {
@@ -2382,6 +2411,7 @@ export default function CreateEventPage() {
                 isClearable
                 className="mt-4 md:max-w-72"
                 {...register('price')}
+                onChange={(e) => setPrice(Number(e.target.value))}
                 isInvalid={!!errors.price}
                 errorMessage={errors.price?.message}
                 readOnly={isSubmitting}
@@ -2394,6 +2424,7 @@ export default function CreateEventPage() {
                 isClearable
                 className='mt-4 md:max-w-72'
                 {...register('extraKidPrice')}
+                onChange={(e) => setExtraKidPrice(Number(e.target.value))}
                 isInvalid={!!errors.extraKidPrice}
                 errorMessage={errors.extraKidPrice?.message}
                 readOnly={isSubmitting}
@@ -2405,13 +2436,13 @@ export default function CreateEventPage() {
                 label='Minimum Charge'
                 isClearable
                 {...register('minimumCharge')}
+                onChange={(e) => setMinimumCharge(Number(e.target.value))}
                 isInvalid={!!errors.minimumCharge}
                 errorMessage={errors.minimumCharge?.message}
                 readOnly={isSubmitting}
               />
               <Textarea
                 label="Extra Note"
-                placeholder="Enter a description"
                 variant="underlined"
                 className="mt-4 md:max-w-72"
                 {...register('extraNote')}
@@ -2427,6 +2458,7 @@ export default function CreateEventPage() {
                 isClearable
                 className="mt-4 md:max-w-72"
                 {...register('deposit')}
+                onChange={(e) => setPaidAmount(Number(e.target.value))}
                 isInvalid={!!errors.deposit}
                 errorMessage={errors.deposit?.message}
                 readOnly={isSubmitting}
@@ -2462,6 +2494,81 @@ export default function CreateEventPage() {
           description='Enter the event extras'
           form={<ExtraTable update={updateExtras}/>}
         />
+        <Spacer y={2} />
+        <Divider className="bg-light-200" />
+        <h1 className="my-5 text-2xl font-bold m-12">Grand Total</h1>
+        <div className="flex flex-col gap-5 m-12">
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Activities Total Price</p>
+          {activityTotal ? (
+            <p className="text-md text-light-400">${activityTotal}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className='flex items-center justify-between'>
+          <p className='text-md text-light-300'>Orders Total Price</p>
+          {orderTotal ? (
+            <p className='text-md text-light-400'>${(orderTotal * 1.11).toFixed(2)}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Cakes Total Price</p>
+          {cakeTotal ? (
+            <p className="text-md text-light-400">${cakeTotal}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className='flex items-center justify-between'>
+          <p className='text-md text-light-300'>Decorations and Themes Total Price</p>
+          {extraTotal ? (
+            <p className='text-md text-light-400'>${extraTotal}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Event Amount</p>
+          {event ? (
+            <p className="text-md text-light-400">${extraKidPrice + minimumCharge + price}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Paid Amount</p>
+          {event ? (
+            <p className="text-md text-light-400">${paidAmount}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-md text-light-300">Grand Total</p>
+          {event ? (
+            <p className="text-md text-light-400">${(activityTotal + Number((orderTotal * 1.11).toFixed(2)) + cakeTotal + extraTotal + extraKidPrice + minimumCharge + price) - paidAmount}</p>
+          ) : (
+            <Skeleton className="w-[25px] rounded-lg">
+              <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
+            </Skeleton>
+          )}
+        </div>
+      </div>
         <div className="flex w-full justify-end gap-5 p-3 md:p-8">
           <Button
             type="button"

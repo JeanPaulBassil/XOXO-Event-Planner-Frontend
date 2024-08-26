@@ -74,8 +74,8 @@ const INITIAL_ORDERS_VISIBLE_COLUMNS = [
 ]
 
 const INITIAL_CAKES_VISIBLE_COLUMNS = [
-  'type',
   'description',
+  'type',
   'unitPrice',
   'quantity',
   'total',
@@ -106,8 +106,8 @@ const orderColumns = [
 ]
 
 const cakeColumns = [
-  { name: 'Type', uid: 'type', sortable: true},
   { name: 'Description', uid: 'description', sortable: true},
+  { name: 'Type', uid: 'type', sortable: true},
   { name: 'Unit Price', uid: 'unitPrice', sortable: true},
   { name: 'Quantity', uid: 'quantity', sortable: true},
   { name: 'Total', uid: 'total', sortable: true},
@@ -127,17 +127,18 @@ type ActivityInTable = {
   description: ActivityType
   price: number
   action?: any[]
-  isEnabled?: boolean
+  isEnabled: boolean
 }
 
 type OrderInTable = {
   id?: number
   description: OrderType
-  unit: UnitType
+  unit: UnitType | undefined
   unitPrice: number
   quantity: number
   total?: number
   action?: any[]
+  isEnabled: boolean
 }
 
 type CakeInTable = {
@@ -148,6 +149,7 @@ type CakeInTable = {
   quantity: number
   total?: number
   action?: any[]
+  isEnabled: boolean
 }
 
 type ExtraInTable = {
@@ -157,6 +159,7 @@ type ExtraInTable = {
   quantity: number
   total?: number
   action?: any[]
+  isEnabled: boolean
 }
 
 type activityTableProps = {
@@ -252,6 +255,9 @@ const orderSchema = Joi.object({
 })
 
 const cakeSchema = Joi.object({
+  type: Joi.string().required().messages({
+    'any.required': 'Cake type is required',
+  }),
   unitPrice: Joi.number().min(0).required().messages({
     'number.min': 'Cake price cannot be negative',
     'any.required': 'Cake price is required',
@@ -342,1727 +348,1912 @@ const editEventSchema = Joi.object({
   extraNote: Joi.string().optional().allow(''),
 })
 
-// const ActivityTable = (props: activityTableProps) => {
-//   const activitiesApi = new ActivitiesApi()
+const ActivityTable = (props: activityTableProps) => {
+  const activitiesApi = new ActivitiesApi()
 
-//   const { data: activities, isLoading } = useQuery<ApiResponse<Activity[]>, ServerError>({
-//     queryKey: ['activities'],
-//     queryFn: async () => await activitiesApi.getActivities(),
-//     refetchInterval: 5000
-//   })
+  const { data: activities, isLoading } = useQuery<ApiResponse<Activity[]>, ServerError>({
+    queryKey: ['activities'],
+    queryFn: async () => await activitiesApi.getActivities(),
+    refetchInterval: 5000
+  })
 
-//   const [filterValue, setFilterValue] = React.useState('')
-//   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
-//     new Set(INITIAL_VISIBLE_COLUMNS)
-//   )
-//   const [rowsPerPage, setRowsPerPage] = React.useState(2)
-//   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-//     column: 'description',
-//     direction: 'ascending',
-//   })
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(4)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'description',
+    direction: 'ascending',
+  })
 
-//   const [page, setPage] = React.useState(1)
+  const [page, setPage] = React.useState(1)
 
-//   const [activitiesInTable, setActivitiesInTable] = React.useState<ActivityInTable[]>([])
-//   const [newActivities, setNewActivities] = React.useState<ActivityInTable[]>([])
-//   const [updatedActivities, setUpdatedActivities] = React.useState<ActivityInTable[]>([])
-//   const [deletedActivities, setDeletedActivities] = React.useState<number[] | undefined>([])
+  const [activitiesInTable, setActivitiesInTable] = React.useState<ActivityInTable[]>([])
+  const [newActivities, setNewActivities] = React.useState<ActivityInTable[]>([])
+  const [updatedActivities, setUpdatedActivities] = React.useState<ActivityInTable[]>([])
+  const [deletedActivities, setDeletedActivities] = React.useState<number[] | undefined>([])
 
-//   const hasSearchFilter = Boolean(filterValue)
+  const hasSearchFilter = Boolean(filterValue)
 
-//   useEffect(() => {
-//     if (activities?.payload) {
-//       const activityInTableArray: ActivityInTable[] = activities.payload
-//         .filter(activity => activity.eventId === props.id) // Filter by eventId
-//         .map(activity => ({
-//           id: activity.id,
-//           description: activity.description,
-//           price: activity.price,
-//           action: [<Edit size={16}/>, <Trash2 size={16}/>]
-//         }));
-//         console.log(activityInTableArray)
-//       setActivitiesInTable(activityInTableArray);
-//     }
-//   }, [activities, props.id]);
+  useEffect(() => {
+    if (activities?.payload) {
+      const activityInTableArray: ActivityInTable[] = activities.payload
+        .filter(activity => activity.eventId === props.id) // Filter by eventId
+        .map(activity => ({
+          id: activity.id,
+          description: activity.description,
+          price: activity.price,
+          isEnabled: true
+        }));
+        console.log(activityInTableArray)
+      setActivitiesInTable(activityInTableArray);
+
+      setActivitiesInTable(prevActivities => {
+        const updatedActivities = [...prevActivities];
+      
+        Object.values(ActivityType).forEach(type => {
+          let currentActivity = prevActivities.find(activity => activity.description === type);
+          if (!currentActivity) {
+            const newActivity = {
+              description: type,
+              price: 0,
+              isEnabled: false
+            };
+            updatedActivities.push(newActivity);
+          }
+        });
+      
+        return updatedActivities;
+      });
+      
+      
+    }
+  }, [activities, props.id]);
   
   
-//     useEffect(() => {
-//       props.update({newActivities, updatedActivities, deletedActivities})
-//       const updateVisibleColumns = () => {
-//         if (window.innerWidth <= 1024) {
-//           setVisibleColumns(new Set(['name', 'price']))
-//         } else {
-//           setVisibleColumns(new Set(columns.map((c) => c.uid)))
-//         }
-//       }
+    useEffect(() => {
+      props.update({newActivities, updatedActivities, deletedActivities})
+      const updateVisibleColumns = () => {
+        if (window.innerWidth <= 1024) {
+          setVisibleColumns(new Set(['description', 'price']))
+        } else {
+          setVisibleColumns(new Set(columns.map((c) => c.uid)))
+        }
+      }
   
-//       updateVisibleColumns()
-//       window.addEventListener('resize', updateVisibleColumns)
-//       return () => window.removeEventListener('resize', updateVisibleColumns)
-//     }, [activitiesInTable])
+      updateVisibleColumns()
+      window.addEventListener('resize', updateVisibleColumns)
+      return () => window.removeEventListener('resize', updateVisibleColumns)
+    }, [activitiesInTable])
 
-//   const addActivity =  (activity: ActivityInTable) => {
-//     setActivitiesInTable([...activitiesInTable, activity])
-//     setNewActivities([...newActivities, activity])
-//   }
+    const addActivity = (activity: ActivityInTable) => {
+      const newActivity = { ...activity, isEnabled: true };
+    
+      setActivitiesInTable(prevActivities => {
+        // Check if the activity already exists in the table
+        const isActivityInTable = prevActivities.some(act => act.description === activity.description);
+        
+        if (!isActivityInTable) {
+          return [...prevActivities, newActivity];
+        } else {
+          // If the activity exists, just return the previous state
+          return prevActivities;
+        }
+      });
+    
+      setNewActivities(prevNewActivities => [...prevNewActivities, newActivity]);
+    };
+    
 
-//   // Function to delete an activity by name
-//   const deleteActivity = (activityName: string) => {
-//     setActivitiesInTable(prevActivities => {
-//       console.log(prevActivities)
-//       const updatedActivities = prevActivities.filter(activity => activity.description !== activityName);
-  
-//       // Check if the activity is in newActivities
-//       const isInNewActivities = newActivities.some(activity => activity.description === activityName);
-  
-//       if (isInNewActivities) {
-//         setNewActivities(prevNewActivities => prevNewActivities.filter(activity => activity.description !== activityName));
-//       } else {
-//         // If it's not in newActivities, check in activities
-//         const deletedActivity = prevActivities.find(activity => activity.description === activityName);
-//         console.log(deletedActivity)
-//         if (deletedActivity) {
-//           setDeletedActivities((prevDeleted) => {
-//             // Ensure `deletedActivity.id` is a number before pushing it into the array.
-//             let id = deletedActivity.id;
-//             console.log(id)
-//             if (id) {
-//               if (prevDeleted !== undefined) {
-//                 return [...prevDeleted, id];
-//               } else {
-//                 return [id];
-//               }
-//             }
-//           });
-          
-          
-//         }
-//       }
-  
-//       return updatedActivities;
-//     });
-//   };
-
-// // Function to edit an activity by name
-// const editActivity = (activityName: string, updatedActivity: Partial<ActivityInTable>) => {
-//   setActivitiesInTable(prevActivities => {
-//     const index = prevActivities.findIndex(activity => activity.description === activityName);
-
-//     if (index !== -1) {
-//       const updatedActivities = [...prevActivities];
-//       updatedActivities[index] = { ...updatedActivities[index], ...updatedActivity };
-
-//       // Check if the activity is in newActivities
-//       const isInNewActivities = newActivities.some(activity => activity.description === activityName);
-
-//       if (isInNewActivities) {
-//         // Update the activity in newActivities
-//         setNewActivities(prevNewActivities => {
-//           const updatedNewActivities = [...prevNewActivities];
-//           const newActivityIndex = updatedNewActivities.findIndex(activity => activity.description === activityName);
-//           updatedNewActivities[newActivityIndex] = { ...updatedNewActivities[newActivityIndex], ...updatedActivity };
-//           return updatedNewActivities;
-//         });
-//       } else {
-//         // If it's not in newActivities, add it to updatedActivities
-//         setUpdatedActivities(prevUpdated => [...prevUpdated, updatedActivities[index]]);
-//       }
-
-//       return updatedActivities;
-//     } else {
-//       console.log(`Activity with name "${activityName}" not found.`);
-//       return prevActivities;
-//     }
-//   });
-// };
-
-//   const headerColumns = React.useMemo(() => {
-//     if (visibleColumns === 'all') return columns
-//     return columns.filter((column) => Array.from(visibleColumns).includes(column.uid))
-//   }, [visibleColumns])
-
-//   const filteredItems = React.useMemo(() => {
-//     let filteredActivities = [...(activitiesInTable || [])]
-
-//     if (hasSearchFilter) {
-//       filteredActivities = filteredActivities.filter((activity) =>
-//         activity.description.toLowerCase().includes(filterValue.toLowerCase())
-//       )
-//     }
-
-//     return filteredActivities
-//   }, [activitiesInTable, filterValue])
-
-//   const pages = Math.ceil(filteredItems.length / rowsPerPage)
-
-//   const items = React.useMemo(() => {
-//     const start = (page - 1) * rowsPerPage
-//     const end = start + rowsPerPage
-//     return filteredItems.slice(start, end)
-//   }, [page, filteredItems, rowsPerPage])
-
-//   const sortedItems = React.useMemo(() => {
-//     return [...items].sort((a, b) => {
-//       const first = a[sortDescriptor.column as keyof ActivityInTable]
-//       const second = b[sortDescriptor.column as keyof ActivityInTable]
-//       const cmp = first !== null && first !== undefined && second !== null && second !== undefined
-//         ? first < second
-//           ? -1
-//           : first > second
-//             ? 1
-//             : 0
-//         : 0
-//       return sortDescriptor.direction === 'descending' ? -cmp : cmp
-//     })
-//   }, [sortDescriptor, items])
-
-//   const onNextPage = React.useCallback(() => {
-//     if (page < pages) {
-//       setPage(page + 1)
-//     }
-//   }, [page, pages])
-
-//   const onPreviousPage = React.useCallback(() => {
-//     if (page > 1) {
-//       setPage(page - 1)
-//     }
-//   }, [page])
-
-//   // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-//   //   setRowsPerPage(Number(e.target.value))
-//   //   setPage(1)
-//   // }, [])
-
-//   const onSearchChange = React.useCallback((value?: string) => {
-//     if (value) {
-//       setFilterValue(value)
-//       setPage(1)
-//     } else {
-//       setFilterValue('')
-//     }
-//   }, [])
-
-//   const onClear = React.useCallback(() => {
-//     setFilterValue('')
-//     setPage(1)
-//   }, [])
-
-//   const renderCell = React.useCallback((activity: ActivityInTable, columnKey: React.Key) => {
-//     const cellValue = activity[columnKey as keyof ActivityInTable]
-//     switch (columnKey) {
-//       case 'description':
-//         return (
-//           <div>
-//             <p className="text-bold">{activity.description}</p>
-//           </div>
-//         )
-//       case 'price':
-//         return (
-//           <Input
-//             type='number'
-//             value={activity.price?.toString() ?? '0'}
-//             placeholder='Set Price'
-//             isRequired={true}
-//             className="mt-4 md:max-w-72"
-//             variant='underlined'
-//             onChange={(e) => {
-//               const newPrice = parseInt(e.target.value);
-//               const {error} = activitySchema.validate({price: newPrice});
-
-//               if (error) {
-//                 console.error(error.message);
-//                 toast.error(error.message);
-//               }
-//               setActivitiesInTable((prevActivities) =>
-//                 prevActivities.map((a) =>
-//                   a.description === activity.description ? { ...a, price: newPrice } : a)
-                
-//               )
-//             }}
-//           />
-//         )
-//       case 'action':
-//         if (activity.isEnabled) {
-//           return (
-//             <Button
-//             color="danger"
-//         radius="sm"
-//         variant="solid"
-//               onClick={() => {
-//                 setActivitiesInTable(prevActivities =>
-//                   prevActivities.map(a =>
-//                     a.description === activity.description ? { ...a, isEnabled: false } : a
-//                   )
-//                 );
-//                 deleteActivity(activity.description);
-//               }}
-//               isIconOnly
-//               size='sm'
-//             >
-//               <Trash2 size={22}/>
-//             </Button>
-//           );
-//         } else {
-//           return (
-//             <Button
-//             color="danger"
-//         radius="sm"
-//         variant="solid"
-//               onClick={() => {
-//                 setActivitiesInTable(prevActivities =>
-//                   prevActivities.map(a =>
-//                     a.description === activity.description ? { ...a, isEnabled: true } : a
-//                   )
-//                 );
-//                 addActivity(activity);
-//               }}
-//               isIconOnly
-//               size='sm'
-//             >
-//               <PlusIcon size={22} />
-//             </Button>
-//           );
-//         }
-//       default:
-//         return cellValue
-//     }
-//   }, [])
-
-//   const topContent = React.useMemo(() => {
-//     return (
-//       <div className="flex flex-col gap-4">
-//         <div className="flex items-end justify-between gap-3">
-//           <Input
-//             type="text"
-//             placeholder={'Search by Name'}
-//             size="md"
-//             radius="sm"
-//             variant="bordered"
-//             className="max-w-sm"
-//             classNames={{
-//               base: ['bg-transparent', 'shadow-none'],
-//               inputWrapper: [
-//                 'bg-light-100',
-//                 'shadow-none',
-//                 'border-[0px] group-data-[focus=true]:border-[0px]',
-//                 'bg-light-100',
-//                 'border-secondary-200 dark:border-secondary-700',
-//                 'text-secondary-600 dark:text-secondary-50',
-//                 'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
-//                 'transition-colors duration-200 ease-in-out',
-//               ],
-//               input: ['bg-light-100'],
-//               clearButton: ['text-secondary-300'],
-//             }}
-//             isClearable
-//             value={filterValue}
-//             onClear={onClear}
-//             onValueChange={onSearchChange}
-//             startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
-//           />
-//           <div className="flex gap-3">
-//             <Dropdown>
-//               <DropdownTrigger className="hidden sm:flex">
-//                 <Button
-//                   radius="sm"
-//                   endContent={<ChevronDownIcon className="text-small" />}
-//                   variant="flat"
-//                 >
-//                   Columns
-//                 </Button>
-//               </DropdownTrigger>
-//               <DropdownMenu
-//                 disallowEmptySelection
-//                 aria-label="Table Columns"
-//                 closeOnSelect={false}
-//                 selectedKeys={visibleColumns}
-//                 selectionMode="multiple"
-//                 onSelectionChange={setVisibleColumns}
-//               >
-//                 {columns.map((column) => (
-//                   <DropdownItem key={column.uid} className="capitalize">
-//                     {toCapitalCase(column.name)}
-//                   </DropdownItem>
-//                 ))}
-//               </DropdownMenu>
-//             </Dropdown>
-//           </div>
-//         </div>
-//         <div className="flex items-center justify-between">
-//           <span className="text-small text-default-400">
-//             Total {activitiesInTable?.length} activities
-//           </span>
-//           {/* <label className="flex items-center text-small text-default-400">
-//             Rows per page:
-//             <select
-//               className="bg-transparent rounded-md text-small text-default-400 outline-none"
-//               onChange={onRowsPerPageChange}
-//             >
-//               <option value="5">2</option>
-//               <option value="10">10</option>
-//               <option value="15">15</option>
-//             </select>
-//           </label> */}
-//         </div>
-//       </div>
-//     )
-//   }, [
-//     filterValue,
-//     visibleColumns,
-//     // onRowsPerPageChange,
-//     activitiesInTable?.length,
-//     onSearchChange,
-//     hasSearchFilter
-//   ])
-
-//   const bottomContent = React.useMemo(() => {
-//     return (
-//       <div className="z-0 flex items-center justify-between px-2 py-2">
-//         <Pagination
-//           isCompact
-//           showControls
-//           showShadow
-//           color="danger"
-//           page={page}
-//           total={pages}
-//           onChange={setPage}
-//         />
-//       </div>
-//     )
-//   }, [items.length, page, pages, hasSearchFilter])
-
-//   // if (isLoading) {
-//   //   return (
-//   //     <div className="flex h-screen items-center justify-center">
-//   //       <Spinner />
-//   //     </div>
-//   //   )
-//   // }
-
-//   return (
-//     <div>
-//       <div className="z-0 w-full px-4 py-4 md:px-4">
-//         <Table
-//           className="z-0"
-//           aria-label="Example table with custom cells, pagination and sorting"
-//           isHeaderSticky
-//           bottomContent={bottomContent}
-//           bottomContentPlacement="outside"
-//           classNames={{
-//             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
-//           }}
-//           sortDescriptor={sortDescriptor}
-//           topContent={topContent}
-//           topContentPlacement="outside"
-//           onSortChange={setSortDescriptor}
-//         >
-//           <TableHeader columns={headerColumns}>
-//             {(column) => (
-//               <TableColumn
-//                 key={column.uid}
-//                 align={column.uid === 'actions' ? 'center' : 'start'}
-//                 allowsSorting={column.sortable}
-//               >
-//                 {column.name}
-//               </TableColumn>
-//             )}
-//           </TableHeader>
-//           <TableBody emptyContent={'No activities found'} items={sortedItems}>
-//             {(item) => (
-//               <TableRow key={item.description}>
-//                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-//               </TableRow>
-//             )}
-//           </TableBody>
-//         </Table>
-//       </div>
-//     </div>
-//   )
-// }
-
-// const OrderTable = (props: orderTableProps) => {
-//   const ordersApi = new OrdersApi()
-
-//   const { data: orders, isLoading } = useQuery<ApiResponse<Order[]>, ServerError>({
-//     queryKey: ['orders'],
-//     queryFn: async () => await ordersApi.getOrders(),
-//     refetchInterval: 5000
-//   })
-//   const [filterValue, setFilterValue] = React.useState('')
-//   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
-//     new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
-//   )
-//   const [rowsPerPage, setRowsPerPage] = React.useState(2)
-//   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-//     column: 'description',
-//     direction: 'ascending',
-//   })
-
-//   const [page, setPage] = React.useState(1)
-
-//   const [ordersInTable, setOrdersInTable] = React.useState<OrderInTable[]>([])
-//   const [newOrders, setNewOrders] = React.useState<OrderInTable[]>([])
-//   const [updatedOrders, setUpdatedOrders] = React.useState<OrderInTable[]>([])
-//   const [deletedOrders, setDeletedOrders] = React.useState<number[] | undefined>([])
-
-//   const hasSearchFilter = Boolean(filterValue)
-
-//   useEffect(() => {
-//     if (orders?.payload) {
-//       const orderInTableArray: OrderInTable[] = orders.payload
-//         .filter(order => order.eventId === props.id) // Filter by eventId
-//         .map(order => ({
-//           id: order.id,
-//           unit: order.unit,
-//           description: order.description,
-//           unitPrice: order.unitPrice,
-//           quantity: order.quantity,
-//           total: (order.unitPrice * order.quantity),
-//           action: [<Edit size={16}/>, <Trash2 size={16}/>]
-//         }));
-//         console.log(orderInTableArray)
-//       setOrdersInTable(orderInTableArray);
-//     }
-//   }, [orders, props.id]);
-
-//   useEffect(() => {
-//     props.update({newOrders, updatedOrders, deletedOrders})
-//     const updateVisibleColumns = () => {
-//       if (window.innerWidth <= 1024) {
-//         setVisibleColumns(new Set(['unit', 'unitPrice']))
-//       } else {
-//         setVisibleColumns(new Set(orderColumns.map((c) => c.uid)))
-//       }
-//     }
-
-//     updateVisibleColumns()
-//     window.addEventListener('resize', updateVisibleColumns)
-//     return () => window.removeEventListener('resize', updateVisibleColumns)
-//   }, [ordersInTable])
-
-//   const addOrder =  (order: OrderInTable) => {
-//     setOrdersInTable([...ordersInTable, order])
-//     setNewOrders([...newOrders, order])
-//   }
-
-//   // Function to delete an activity by name
-//   const deleteOrder = (orderName: string) => {
-//     setOrdersInTable(prevOrders => {
-//       console.log(prevOrders)
-//       const updatedOrders = prevOrders.filter(order => order.unit !== orderName);
-  
-//       // Check if the activity is in newActivities
-//       const isInNewOrders = newOrders.some(order => order.unit === orderName);
-  
-//       if (isInNewOrders) {
-//         setNewOrders(prevNewOrders => prevNewOrders.filter(order => order.unit !== orderName));
-//       } else {
-//         // If it's not in newActivities, check in activities
-//         const deletedOrder = prevOrders.find(order => order.unit === orderName);
-//         console.log(deletedOrder)
-//         if (deletedOrder) {
-//           setDeletedOrders((prevDeleted) => {
-//             // Ensure `deletedActivity.id` is a number before pushing it into the array.
-//             let id = deletedOrder.id;
-//             console.log(id)
-//             if (id) {
-//               if (prevDeleted !== undefined) {
-//                 return [...prevDeleted, id];
-//               } else {
-//                 return [id];
-//               }
-//             }
-//           });
-          
-          
-//         }
-//       }
-  
-//       return updatedOrders;
-//     });
-//   };
-
-// // Function to edit an activity by name
-// const editOrder = (orderName: string, updatedOrder: Partial<OrderInTable>) => {
-//   setOrdersInTable(prevOrders => {
-//     const index = prevOrders.findIndex(order => order.unit === orderName);
-
-//     if (index !== -1) {
-//       const updatedOrders = [...prevOrders];
-//       updatedOrders[index] = { ...updatedOrders[index], ...updatedOrder };
-
-//       // Check if the activity is in newActivities
-//       const isInNewOrder = newOrders.some(order => order.unit === orderName);
-
-//       if (isInNewOrder) {
-//         // Update the activity in newActivities
-//         setNewOrders(prevNewOrders => {
-//           const updatedNewOrders = [...prevNewOrders];
-//           const newOrderIndex = updatedNewOrders.findIndex(order => order.unit === orderName);
-//           updatedNewOrders[newOrderIndex] = { ...updatedNewOrders[newOrderIndex], ...updatedOrder };
-//           return updatedNewOrders;
-//         });
-//       } else {
-//         // If it's not in newActivities, add it to updatedActivities
-//         setUpdatedOrders(prevUpdated => [...prevUpdated, updatedOrders[index]]);
-//       }
-
-//       return updatedOrders;
-//     } else {
-//       console.log(`Order with name "${orderName}" not found.`);
-//       return prevOrders;
-//     }
-//   });
-// };
-
+    const deleteActivity = (activityName: string) => {
+      setActivitiesInTable(prevActivities => {
+        return prevActivities.map(activity =>
+          activity.description === activityName
+            ? { ...activity, isEnabled: false }
+            : activity
+        );
+      });
+    
+      setActivitiesInTable(prevActivities => {
+        const deletedActivity = prevActivities.find(activity => activity.description === activityName);
+    
+        if (deletedActivity && deletedActivity.id) {
+          // The activity is fetched from the database
+          setDeletedActivities(prevDeleted => prevDeleted ? [...prevDeleted, deletedActivity.id!] : [deletedActivity.id!]);
+        } else {
+          // The activity is newly created
+          setNewActivities(prevNewActivities => prevNewActivities.filter(activity => activity.description !== activityName));
+        }
+    
+        return prevActivities; // return updated activities
+      });
+    };
+    
   
 
-//   const headerColumns = React.useMemo(() => {
-//     if (visibleColumns === 'all') return orderColumns
-//     return orderColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
-//   }, [visibleColumns])
-
-//   const filteredItems = React.useMemo(() => {
-//     let filteredOrders = [...(ordersInTable || [])]
-
-//     if (hasSearchFilter) {
-//       filteredOrders = filteredOrders.filter((order) =>
-//         order.unit.toLowerCase().includes(filterValue.toLowerCase())
-//       )
-//     }
-
-//     return filteredOrders
-//   }, [ordersInTable, filterValue])
-
-//   const pages = Math.ceil(filteredItems.length / rowsPerPage)
-
-//   const items = React.useMemo(() => {
-//     const start = (page - 1) * rowsPerPage
-//     const end = start + rowsPerPage
-//     return filteredItems.slice(start, end)
-//   }, [page, filteredItems, rowsPerPage])
-
-//   const sortedItems = React.useMemo(() => {
-//     return [...items].sort((a, b) => {
-//       const first = a[sortDescriptor.column as keyof OrderInTable]
-//       const second = b[sortDescriptor.column as keyof OrderInTable]
-//       const cmp = first !== null && first !== undefined && second !== null && second !== undefined
-//         ? first < second
-//           ? -1
-//           : first > second
-//             ? 1
-//             : 0
-//         : 0
-//       return sortDescriptor.direction === 'descending' ? -cmp : cmp
-//     })
-//   }, [sortDescriptor, items])
-
-//   const onNextPage = React.useCallback(() => {
-//     if (page < pages) {
-//       setPage(page + 1)
-//     }
-//   }, [page, pages])
-
-//   const onPreviousPage = React.useCallback(() => {
-//     if (page > 1) {
-//       setPage(page - 1)
-//     }
-//   }, [page])
-
-//   // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-//   //   setRowsPerPage(Number(e.target.value))
-//   //   setPage(1)
-//   // }, [])
-
-//   const onSearchChange = React.useCallback((value?: string) => {
-//     if (value) {
-//       setFilterValue(value)
-//       setPage(1)
-//     } else {
-//       setFilterValue('')
-//     }
-//   }, [])
-
-//   const onClear = React.useCallback(() => {
-//     setFilterValue('')
-//     setPage(1)
-//   }, [])
-
-//   const renderCell = React.useCallback((order: OrderInTable, columnKey: React.Key) => {
-//     const cellValue = order[columnKey as keyof OrderInTable]
-//     switch (columnKey) {
-//       case 'description':
-//         return (
-//           <div>
-//             <p className="text-bold">{order.description}</p>
-//           </div>
-//         )
-//       case 'unit':
-//         return (
-//                   <Autocomplete
-//                     label="Select Unit"
-//                     className="mt-4 md:max-w-72"
-//                     variant="underlined"
-//                     isRequired
-//                     value={order.unit}
-//                     selectedKey={order.unit}
-//                     onSelectionChange={(value) => handleChange(value, order)}
-//                     inputProps={{
-//                       classNames: {
-//                         base: 'bg-white',
-//                         inputWrapper:
-//                           "px-1 bg-white shadow-none border-b-3 border-light-200 rounded-none after:content-[''] after:w-0 after:origin-center after:absolute after:left-1/2 after:-translate-x-1/2 after:-bottom-[2px] after:h-[2px] data-[open=true]:after:w-full data-[focus=true]:after:w-full after:bg-light-900 after:transition-width motion-reduce:after:transition-none",
-//                         label: 'text-light-300 dark:text-secondary-400 text-small',
-//                         input: 'text-secondary-950 dark:text-white',
-//                       },
-//                     }}
-//                   >
-//                     <AutocompleteItem key={`${UnitType.KG}`} value={`${UnitType.KG}`}>
-//                       KG
-//                     </AutocompleteItem>
-//                     <AutocompleteItem key={`${UnitType.DZ}`} value={`${UnitType.DZ}`}>
-//                       DZ
-//                     </AutocompleteItem>
-//                     <AutocompleteItem key={`${UnitType.UN}`} value={`${UnitType.UN}`}>
-//                       UN
-//                     </AutocompleteItem>
-//                   </Autocomplete>
-                
-//         )
-//       case 'unitPrice':
-//         return (
-//             <Input
-//               type='number'
-//               value={order.unitPrice?.toString() ?? '0'}
-//               placeholder='Set Price'
-//               isRequired={true}
-//               className="mt-4 md:max-w-72"
-//               variant='underlined'
-//               onChange={(e) => {
-//                 const newPrice = parseInt(e.target.value);
-//                 const {error} = orderSchema.validate({unitPrice: newPrice, quantity: order.quantity});
+    const editActivity = (activityName: string, updatedActivity: Partial<ActivityInTable>) => {
+      setActivitiesInTable(prevActivities => {
+        const updatedActivities = prevActivities.map(activity =>
+          activity.description === activityName
+            ? { ...activity, ...updatedActivity }
+            : activity
+        );
+    
+        const activityToUpdate = updatedActivities.find(activity => activity.description === activityName);
+        console.log(activityToUpdate)
+        if (activityToUpdate && activityToUpdate.id) {
+          // Check if the activity is already in updatedActivities
+          setUpdatedActivities(prevUpdated => {
+            const isAlreadyUpdated = prevUpdated.some(activity => activity.id === activityToUpdate.id);
+            console.log(isAlreadyUpdated)
+            if (!isAlreadyUpdated) {
+              console.log(`r`)
+              return [...prevUpdated, activityToUpdate];
+            } else {
+              // If it's already in updatedActivities, just update the existing entry
+              return prevUpdated.map(activity =>
+                activity.id === activityToUpdate.id ? activityToUpdate : activity
+          )}
+        });
+          } else if (activityToUpdate && !activityToUpdate.id) {
+          // The activity is newly created, so update it in newActivities
+          setNewActivities(prevNewActivities => {
+            const updatedNewActivities = [...prevNewActivities];
+            const newActivityIndex = updatedNewActivities.findIndex(activity => activity.description === activityName);
+            updatedNewActivities[newActivityIndex] = { ...updatedNewActivities[newActivityIndex], ...updatedActivity };
+            return updatedNewActivities;
+          });
+        }
+    
+        return updatedActivities; // return updated activities
+      });
+    };
+    
   
-//                 if (error) {
-//                   console.error(error.message);
-//                   toast.error(error.message);
-//                 }
-//                 setOrdersInTable((prevOrders) =>
-//                   prevOrders.map((o) =>
-//                     o.description === order.description ? { ...o, unitPrice: newPrice } : o)
-                  
-//                 )
-//               }}
-//             />
-//           )
-//       case 'quantity':
-//         return (
-//           <Input
-//             type='number'
-//             value={order.quantity?.toString() ?? '1'}
-//             placeholder='Set Quantity'
-//             isRequired={true}
-//             className="mt-4 md:max-w-72"
-//             variant='underlined'
-//             onChange={(e) => {
-//               const newQuantity = parseInt(e.target.value);
-//               const {error} = orderSchema.validate({quantity: newQuantity, unitPrice: order.unitPrice});
-
-//               if (error) {
-//                 console.error(error.message);
-//                 toast.error(error.message);
-//               }
-//               setOrdersInTable((prevOrders) =>
-//                 prevOrders.map((o) =>
-//                   o.description === order.description ? { ...o, quantity: newQuantity } : o)
-                
-//               )
-//             }}
-//           />
-//         )
-//       case 'total':
-//         return (
-//         <div>
-//             ${order.quantity && order.unitPrice ? (order.quantity * order.unitPrice) : 0}
-//           </div>
-//         )
-//         case 'action':
-//           if (order.isEnabled) {
-//             return (
-//               <Button
-//               color="danger"
-//               radius="sm"
-//               variant="solid"
-//                 onClick={() => {
-//                   setOrdersInTable(prevOrders =>
-//                     prevOrders.map(o =>
-//                       o.description === o.description ? { ...o, isEnabled: false } : o
-//                     )
-//                   );
-//                   deleteOrder(order.description);
-//                 }}
-//                 isIconOnly
-//                 size='sm'
-//               >
-//                 <Trash2 size={22}/>
-//               </Button>
-//             );
-//           } else {
-//             return (
-//               <Button
-//               color="danger"
-//               radius="sm"
-//               variant="solid"
-//                 onClick={() => {
-//                   setOrdersInTable(prevOrders =>
-//                     prevOrders.map(o =>
-//                       o.description === order.description ? { ...o, isEnabled: true } : o
-//                     )
-//                   );
-//                   addOrder(order);
-//                 }}
-//                 isIconOnly
-//                 size='sm'
-//               >
-//                 <PlusIcon size={22} />
-//               </Button>
-//             );
-//           }
-//       default:
-//         return cellValue
-//     }
-//   }, [])
-
-//   const topContent = React.useMemo(() => {
-//     return (
-//       <div className="flex flex-col gap-4">
-//         <div className="flex items-end justify-between gap-3">
-//           <Input
-//             type="text"
-//             placeholder={'Search by Name'}
-//             size="md"
-//             radius="sm"
-//             variant="bordered"
-//             className="max-w-sm"
-//             classNames={{
-//               base: ['bg-transparent', 'shadow-none'],
-//               inputWrapper: [
-//                 'bg-light-100',
-//                 'shadow-none',
-//                 'border-[0px] group-data-[focus=true]:border-[0px]',
-//                 'bg-light-100',
-//                 'border-secondary-200 dark:border-secondary-700',
-//                 'text-secondary-600 dark:text-secondary-50',
-//                 'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
-//                 'transition-colors duration-200 ease-in-out',
-//               ],
-//               input: ['bg-light-100'],
-//               clearButton: ['text-secondary-300'],
-//             }}
-//             isClearable
-//             value={filterValue}
-//             onClear={onClear}
-//             onValueChange={onSearchChange}
-//             startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
-//           />
-//           <div className="flex gap-3">
-//             <Dropdown>
-//               <DropdownTrigger className="hidden sm:flex">
-//                 <Button
-//                   radius="sm"
-//                   endContent={<ChevronDownIcon className="text-small" />}
-//                   variant="flat"
-//                 >
-//                   Columns
-//                 </Button>
-//               </DropdownTrigger>
-//               <DropdownMenu
-//                 disallowEmptySelection
-//                 aria-label="Table Columns"
-//                 closeOnSelect={false}
-//                 selectedKeys={visibleColumns}
-//                 selectionMode="multiple"
-//                 onSelectionChange={setVisibleColumns}
-//               >
-//                 {columns.map((column) => (
-//                   <DropdownItem key={column.uid} className="capitalize">
-//                     {toCapitalCase(column.name)}
-//                   </DropdownItem>
-//                 ))}
-//               </DropdownMenu>
-//             </Dropdown>
-//           </div>
-//               <OrderFormPopUp add={addOrder}/>
-//         </div>
-//         <div className="flex items-center justify-between">
-//           <span className="text-small text-default-400">
-//             Total {ordersInTable?.length} ordes
-//           </span>
-//           {/* <label className="flex items-center text-small text-default-400">
-//             Rows per page:
-//             <select
-//               className="bg-transparent rounded-md text-small text-default-400 outline-none"
-//               onChange={onRowsPerPageChange}
-//             >
-//               <option value="5">2</option>
-//               <option value="10">10</option>
-//               <option value="15">15</option>
-//             </select>
-//           </label> */}
-//         </div>
-//       </div>
-//     )
-//   }, [
-//     filterValue,
-//     visibleColumns,
-//     // onRowsPerPageChange,
-//     ordersInTable?.length,
-//     onSearchChange,
-//     hasSearchFilter
-//   ])
-
-//   const bottomContent = React.useMemo(() => {
-//     return (
-//       <div className="z-0 flex items-center justify-between px-2 py-2">
-//         <Pagination
-//           isCompact
-//           showControls
-//           showShadow
-//           color="danger"
-//           page={page}
-//           total={pages}
-//           onChange={setPage}
-//         />
-//       </div>
-//     )
-//   }, [items.length, page, pages, hasSearchFilter])
-
-//   // if (isLoading) {
-//   //   return (
-//   //     <div className="flex h-screen items-center justify-center">
-//   //       <Spinner />
-//   //     </div>
-//   //   )
-//   // }
-
-//   return (
-//     <div>
-//       <div className="z-0 w-full px-4 py-4 md:px-4">
-//         <Table
-//           className="z-0"
-//           aria-label="Example table with custom cells, pagination and sorting"
-//           isHeaderSticky
-//           bottomContent={bottomContent}
-//           bottomContentPlacement="outside"
-//           classNames={{
-//             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
-//           }}
-//           sortDescriptor={sortDescriptor}
-//           topContent={topContent}
-//           topContentPlacement="outside"
-//           onSortChange={setSortDescriptor}
-//         >
-//           <TableHeader columns={headerColumns}>
-//             {(column) => (
-//               <TableColumn
-//                 key={column.uid}
-//                 align={column.uid === 'actions' ? 'center' : 'start'}
-//                 allowsSorting={column.sortable}
-//               >
-//                 {column.name}
-//               </TableColumn>
-//             )}
-//           </TableHeader>
-//           <TableBody emptyContent={'No orders found'} items={sortedItems}>
-//             {(item) => (
-//               <TableRow key={item.unit}>
-//                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-//               </TableRow>
-//             )}
-//           </TableBody>
-//         </Table>
-//       </div>
-//     </div>
-//   )
-// }
-
-// const CakeTable = (props: cakeTableProps) => {
-//   const cakesApi = new CakesApi()
-
-//   const { data: cakes, isLoading } = useQuery<ApiResponse<Cake[]>, ServerError>({
-//     queryKey: ['cakes'],
-//     queryFn: async () => await cakesApi.getCakes(),
-//     refetchInterval: 5000
-//   })
-//   const [filterValue, setFilterValue] = React.useState('')
-//   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
-//     new Set(INITIAL_CAKES_VISIBLE_COLUMNS)
-//   )
-//   const [rowsPerPage, setRowsPerPage] = React.useState(2)
-//   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-//     column: 'type',
-//     direction: 'ascending',
-//   })
-
-//   const [page, setPage] = React.useState(1)
-
-//   const [cakesInTable, setCakesInTable] = React.useState<CakeInTable[]>([])
-//   const [newCakes, setNewCakes] = React.useState<CakeInTable[]>([])
-//   const [updatedCakes, setUpdatedCakes] = React.useState<CakeInTable[]>([])
-//   const [deletedCakes, setDeletedCakes] = React.useState<number[] | undefined>([])
-
-//   const hasSearchFilter = Boolean(filterValue)
-
-//   useEffect(() => {
-//     if (cakes?.payload) {
-//       const cakeInTableArray: CakeInTable[] = cakes.payload
-//         .filter(cake => cake.eventId === props.id) // Filter by eventId
-//         .map(cake => ({
-//           id: cake.id,
-//           type: cake.type,
-//           description: cake.description,
-//           price: cake.price,
-//           action: [<Edit size={16}/>, <Trash2 size={16}/>]
-//         }));
-//         console.log(cakeInTableArray)
-//       setCakesInTable(cakeInTableArray);
-//     }
-//   }, [cakes, props.id]);
-
-//   useEffect(() => {
-//     props.update({newCakes, updatedCakes, deletedCakes})
-//     const updateVisibleColumns = () => {
-//       if (window.innerWidth <= 1024) {
-//         setVisibleColumns(new Set(['type', 'price']))
-//       } else {
-//         setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
-//       }
-//     }
-
-//     updateVisibleColumns()
-//     window.addEventListener('resize', updateVisibleColumns)
-//     return () => window.removeEventListener('resize', updateVisibleColumns)
-//   }, [cakesInTable])
-
-//   const addCake =  (cake: CakeInTable) => {
-//     setCakesInTable([...cakesInTable, cake])
-//     setNewCakes([...newCakes, cake])
-//   }
-
-//   // Function to delete an activity by name
-//   const deleteCake = (cakeName: string) => {
-//     setCakesInTable(prevCakes => {
-//       console.log(prevCakes)
-//       const updatedCakes = prevCakes.filter(cake => cake.type !== cakeName);
   
-//       // Check if the activity is in newActivities
-//       const isInNewCakes = newCakes.some(cake => cake.type === cakeName);
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return columns
+    return columns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredActivities = [...(activitiesInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredActivities = filteredActivities.filter((activity) =>
+        activity.description.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredActivities
+  }, [activitiesInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof ActivityInTable]
+      const second = b[sortDescriptor.column as keyof ActivityInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((activity: ActivityInTable, columnKey: React.Key) => {
+    const cellValue = activity[columnKey as keyof ActivityInTable];
+    
+    switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{activity.description}</p>
+          </div>
+        );
+      case 'price':
+        return (
+          <Input
+            type='number'
+            value={activity.price?.toString() ?? '0'}
+            placeholder='Set Price'
+            isRequired={true}
+            className="mt-4 md:max-w-72"
+            variant='underlined'
+            onChange={(e) => {
+              const newPrice = parseInt(e.target.value);
+              const { error } = activitySchema.validate({ price: newPrice });
   
-//       if (isInNewCakes) {
-//         setNewCakes(prevNewCakes => prevNewCakes.filter(cake => cake.type !== cakeName));
-//       } else {
-//         // If it's not in newActivities, check in activities
-//         const deletedCake = prevCakes.find(cake => cake.type === cakeName);
-//         console.log(deletedCake)
-//         if (deletedCake) {
-//           setDeletedCakes((prevDeleted) => {
-//             // Ensure `deletedActivity.id` is a number before pushing it into the array.
-//             let id = deletedCake.id;
-//             console.log(id)
-//             if (id) {
-//               if (prevDeleted !== undefined) {
-//                 return [...prevDeleted, id];
-//               } else {
-//                 return [id];
-//               }
-//             }
-//           });
-          
-          
-//         }
-//       }
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              } else {
+                // Update the activity in the table
+                setActivitiesInTable((prevActivities) => {
+                  const updatedActivities = prevActivities.map((a) =>
+                    a.description === activity.description ? { ...a, price: newPrice } : a
+                  );
+                  return updatedActivities;
+                });
   
-//       return updatedCakes;
-//     });
-//   };
-
-// // Function to edit an activity by name
-// const editCake = (cakeName: string, updatedCake: Partial<ActivityInTable>) => {
-//   setCakesInTable(prevCakes => {
-//     const index = prevCakes.findIndex(cake => cake.type === cakeName);
-
-//     if (index !== -1) {
-//       const updatedCakes = [...prevCakes];
-//       updatedCakes[index] = { ...updatedCakes[index], ...updatedCake };
-
-//       // Check if the activity is in newActivities
-//       const isInNewCakes = newCakes.some(cake => cake.type === cakeName);
-
-//       if (isInNewCakes) {
-//         // Update the activity in newActivities
-//         setNewCakes(prevNewCakes => {
-//           const updatedNewCakes = [...prevNewCakes];
-//           const newCakeIndex = updatedNewCakes.findIndex(cake => cake.type === cakeName);
-//           updatedNewCakes[newCakeIndex] = { ...updatedNewCakes[newCakeIndex], ...updatedCake };
-//           return updatedNewCakes;
-//         });
-//       } else {
-//         // If it's not in newActivities, add it to updatedActivities
-//         setUpdatedCakes(prevUpdated => [...prevUpdated, updatedCakes[index]]);
-//       }
-
-//       return updatedCakes;
-//     } else {
-//       console.log(`Cake with type "${cakeName}" not found.`);
-//       return prevCakes;
-//     }
-//   });
-// };
-
-//   const headerColumns = React.useMemo(() => {
-//     if (visibleColumns === 'all') return cakeColumns
-//     return cakeColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
-//   }, [visibleColumns])
-
-//   const filteredItems = React.useMemo(() => {
-//     let filteredCakes = [...(cakesInTable || [])]
-
-//     if (hasSearchFilter) {
-//       filteredCakes = filteredCakes.filter((cake) =>
-//         cake.type.toLowerCase().includes(filterValue.toLowerCase())
-//       )
-//     }
-
-//     return filteredCakes
-//   }, [cakesInTable, filterValue])
-
-//   const pages = Math.ceil(filteredItems.length / rowsPerPage)
-
-//   const items = React.useMemo(() => {
-//     const start = (page - 1) * rowsPerPage
-//     const end = start + rowsPerPage
-//     return filteredItems.slice(start, end)
-//   }, [page, filteredItems, rowsPerPage])
-
-//   const sortedItems = React.useMemo(() => {
-//     return [...items].sort((a, b) => {
-//       const first = a[sortDescriptor.column as keyof CakeInTable]
-//       const second = b[sortDescriptor.column as keyof CakeInTable]
-//       const cmp = first !== null && first !== undefined && second !== null && second !== undefined
-//         ? first < second
-//           ? -1
-//           : first > second
-//             ? 1
-//             : 0
-//         : 0
-//       return sortDescriptor.direction === 'descending' ? -cmp : cmp
-//     })
-//   }, [sortDescriptor, items])
-
-//   const onNextPage = React.useCallback(() => {
-//     if (page < pages) {
-//       setPage(page + 1)
-//     }
-//   }, [page, pages])
-
-//   const onPreviousPage = React.useCallback(() => {
-//     if (page > 1) {
-//       setPage(page - 1)
-//     }
-//   }, [page])
-
-//   // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-//   //   setRowsPerPage(Number(e.target.value))
-//   //   setPage(1)
-//   // }, [])
-
-//   const onSearchChange = React.useCallback((value?: string) => {
-//     if (value) {
-//       setFilterValue(value)
-//       setPage(1)
-//     } else {
-//       setFilterValue('')
-//     }
-//   }, [])
-
-//   const onClear = React.useCallback(() => {
-//     setFilterValue('')
-//     setPage(1)
-//   }, [])
-
-//   const renderCell = React.useCallback((cake: CakeInTable, columnKey: React.Key) => {
-//     const cellValue = cake[columnKey as keyof CakeInTable]
-//     switch (columnKey) {
-//       case 'type':
-//         return (
-//           <div>
-//             <p className="text-bold">{cake.type}</p>
-//           </div>
-//         )
-//       case 'price':
-//         return (
-//           <div>
-//             ${cake.price}
-//           </div>
-//         )
-//       case 'action':
-//         if (Array.isArray(cellValue)) {
-//           return (
-//               <div className='flex gap-4'>
-//                   <EditCakeFormPopUp edit={editCake} cake={cake}/>
-//                   <Button onClick={() => deleteCake(cake.type)} isIconOnly size='sm'>{cellValue[1]}</Button>
-//               </div>
-//           );
-//       } else {
-//           console.error("Expected 'action' to be an array, but got:", cellValue);
-//           return null;
-//       }
-//       default:
-//         return cellValue
-//     }
-//   }, [])
-
-//   const topContent = React.useMemo(() => {
-//     return (
-//       <div className="flex flex-col gap-4">
-//         <div className="flex items-end justify-between gap-3">
-//           <Input
-//             type="text"
-//             placeholder={'Search by Name'}
-//             size="md"
-//             radius="sm"
-//             variant="bordered"
-//             className="max-w-sm"
-//             classNames={{
-//               base: ['bg-transparent', 'shadow-none'],
-//               inputWrapper: [
-//                 'bg-light-100',
-//                 'shadow-none',
-//                 'border-[0px] group-data-[focus=true]:border-[0px]',
-//                 'bg-light-100',
-//                 'border-secondary-200 dark:border-secondary-700',
-//                 'text-secondary-600 dark:text-secondary-50',
-//                 'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
-//                 'transition-colors duration-200 ease-in-out',
-//               ],
-//               input: ['bg-light-100'],
-//               clearButton: ['text-secondary-300'],
-//             }}
-//             isClearable
-//             value={filterValue}
-//             onClear={onClear}
-//             onValueChange={onSearchChange}
-//             startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
-//           />
-//           <div className="flex gap-3">
-//             <Dropdown>
-//               <DropdownTrigger className="hidden sm:flex">
-//                 <Button
-//                   radius="sm"
-//                   endContent={<ChevronDownIcon className="text-small" />}
-//                   variant="flat"
-//                 >
-//                   Columns
-//                 </Button>
-//               </DropdownTrigger>
-//               <DropdownMenu
-//                 disallowEmptySelection
-//                 aria-label="Table Columns"
-//                 closeOnSelect={false}
-//                 selectedKeys={visibleColumns}
-//                 selectionMode="multiple"
-//                 onSelectionChange={setVisibleColumns}
-//               >
-//                 {columns.map((column) => (
-//                   <DropdownItem key={column.uid} className="capitalize">
-//                     {toCapitalCase(column.name)}
-//                   </DropdownItem>
-//                 ))}
-//               </DropdownMenu>
-//             </Dropdown>
-//           </div>
-//               <CakeFormPopUp add={addCake}/>
-//         </div>
-//         <div className="flex items-center justify-between">
-//           <span className="text-small text-default-400">
-//             Total {cakesInTable?.length} cakes
-//           </span>
-//           {/* <label className="flex items-center text-small text-default-400">
-//             Rows per page:
-//             <select
-//               className="bg-transparent rounded-md text-small text-default-400 outline-none"
-//               onChange={onRowsPerPageChange}
-//             >
-//               <option value="5">2</option>
-//               <option value="10">10</option>
-//               <option value="15">15</option>
-//             </select>
-//           </label> */}
-//         </div>
-//       </div>
-//     )
-//   }, [
-//     filterValue,
-//     visibleColumns,
-//     // onRowsPerPageChange,
-//     cakesInTable?.length,
-//     onSearchChange,
-//     hasSearchFilter
-//   ])
-
-//   const bottomContent = React.useMemo(() => {
-//     return (
-//       <div className="z-0 flex items-center justify-between px-2 py-2">
-//         <Pagination
-//           isCompact
-//           showControls
-//           showShadow
-//           color="danger"
-//           page={page}
-//           total={pages}
-//           onChange={setPage}
-//         />
-//       </div>
-//     )
-//   }, [items.length, page, pages, hasSearchFilter])
-
-//   // if (isLoading) {
-//   //   return (
-//   //     <div className="flex h-screen items-center justify-center">
-//   //       <Spinner />
-//   //     </div>
-//   //   )
-//   // }
-
-//   return (
-//     <div>
-//       <div className="z-0 w-full px-4 py-4 md:px-4">
-//         <Table
-//           className="z-0"
-//           aria-label="Example table with custom cells, pagination and sorting"
-//           isHeaderSticky
-//           bottomContent={bottomContent}
-//           bottomContentPlacement="outside"
-//           classNames={{
-//             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
-//           }}
-//           sortDescriptor={sortDescriptor}
-//           topContent={topContent}
-//           topContentPlacement="outside"
-//           onSortChange={setSortDescriptor}
-//         >
-//           <TableHeader columns={headerColumns}>
-//             {(column) => (
-//               <TableColumn
-//                 key={column.uid}
-//                 align={column.uid === 'actions' ? 'center' : 'start'}
-//                 allowsSorting={column.sortable}
-//               >
-//                 {column.name}
-//               </TableColumn>
-//             )}
-//           </TableHeader>
-//           <TableBody emptyContent={'No cakes found'} items={sortedItems}>
-//             {(item) => (
-//               <TableRow key={item.type}>
-//                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-//               </TableRow>
-//             )}
-//           </TableBody>
-//         </Table>
-//       </div>
-//     </div>
-//   )
-// }
-
-// const ExtraTable = (props: extraTableProps) => {
-//   const extrasApi = new ExtrasApi()
-
-//   const { data: extras, isLoading } = useQuery<ApiResponse<Extra[]>, ServerError>({
-//     queryKey: ['extras'],
-//     queryFn: async () => await extrasApi.getExtras(),
-//     refetchInterval: 5000
-//   })
-//   const [filterValue, setFilterValue] = React.useState('')
-//   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
-//     new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
-//   )
-//   const [rowsPerPage, setRowsPerPage] = React.useState(2)
-//   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-//     column: 'unitPrice',
-//     direction: 'ascending',
-//   })
-
-//   const [page, setPage] = React.useState(1)
-
-//   const [extrasInTable, setExtrasInTable] = React.useState<ExtraInTable[]>([])
-//   const [newExtras, setNewExtras] = React.useState<ExtraInTable[]>([])
-//   const [updatedExtras, setUpdatedExtras] = React.useState<ExtraInTable[]>([])
-//   const [deletedExtras, setDeletedExtras] = React.useState<number[] | undefined>([])
-
-//   const hasSearchFilter = Boolean(filterValue)
-
-//   useEffect(() => {
-//     if (extras?.payload) {
-//       const extraInTableArray: ExtraInTable[] = extras.payload
-//         .filter(extra => extra.eventId === props.id) // Filter by eventId
-//         .map(extra => ({
-//           id: extra.id,
-//           description: extra.description,
-//           unitPrice: extra.unitPrice,
-//           quantity: extra.quantity,
-//           total: (extra.unitPrice * extra.quantity),
-//           action: [<Edit size={16}/>, <Trash2 size={16}/>]
-//         }));
-//         console.log(extraInTableArray)
-//       setExtrasInTable(extraInTableArray);
-//     }
-//   }, [extras, props.id]);
-
-//   useEffect(() => {
-//     props.update({newExtras, updatedExtras, deletedExtras})
-//     const updateVisibleColumns = () => {
-//       if (window.innerWidth <= 1024) {
-//         setVisibleColumns(new Set(['description', 'unitPrice']))
-//       } else {
-//         setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
-//       }
-//     }
-
-//     updateVisibleColumns()
-//     window.addEventListener('resize', updateVisibleColumns)
-//     return () => window.removeEventListener('resize', updateVisibleColumns)
-//   }, [extrasInTable])
-
-//   const addExtra =  (extra: ExtraInTable) => {
-//     setExtrasInTable([...extrasInTable, extra])
-//     setNewExtras([...newExtras, extra])
-//   }
-
-//   // Function to delete an extra by name
-//   const deleteExtra = (extraName: string) => {
-//     setExtrasInTable(prevExtras => {
-//       console.log(prevExtras)
-//       const updatedExtras = prevExtras.filter(extra => extra.description !== extraName);
+                // Call editActivity after updating the price
+                editActivity(activity.description, { price: newPrice });
+              }
+            }}
+          />
+        );
+      case 'action':
+        if (activity.isEnabled) {
+          return (
+            <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+              onClick={() => {
+                setActivitiesInTable(prevActivities =>
+                  prevActivities.map(a =>
+                    a.description === activity.description ? { ...a, isEnabled: false } : a
+                  )
+                );
+                deleteActivity(activity.description);
+              }}
+              isIconOnly
+              size='sm'
+            >
+              <Trash2 size={22} />
+            </Button>
+          );
+        } else {
+          return (
+            <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+              onClick={() => {
+                setActivitiesInTable(prevActivities =>
+                  prevActivities.map(a =>
+                    a.description === activity.description ? { ...a, isEnabled: true } : a
+                  )
+                );
+                addActivity(activity);
+              }}
+              isIconOnly
+              size='sm'
+            >
+              <PlusIcon size={22} />
+            </Button>
+          );
+        }
+      default:
+        return cellValue;
+    }
+  }, []);
   
-//       // Check if the extra is in newExtras
-//       const isInNewExtras = newExtras.some(extra => extra.description === extraName);
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {activitiesInTable?.length} activities
+          </span>
+          {/* <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">2</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label> */}
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    // onRowsPerPageChange,
+    activitiesInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No activities found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.description}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const OrderTable = (props: orderTableProps) => {
+  const ordersApi = new OrdersApi();
+
+  const { data: orders, isLoading } = useQuery<ApiResponse<Order[]>, ServerError>({
+    queryKey: ['orders'],
+    queryFn: async () => await ordersApi.getOrders(),
+    refetchInterval: 5000,
+  });
+
+  const [filterValue, setFilterValue] = useState('');
+  const [visibleColumns, setVisibleColumns] = useState<Selection>(new Set(INITIAL_ORDERS_VISIBLE_COLUMNS));
+  const [rowsPerPage, setRowsPerPage] = useState(3);
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: 'description',
+    direction: 'ascending',
+  });
+  const [page, setPage] = useState(1);
+
+  const [ordersInTable, setOrdersInTable] = useState<OrderInTable[]>([]);
+  const [newOrders, setNewOrders] = useState<OrderInTable[]>([]);
+  const [updatedOrders, setUpdatedOrders] = useState<OrderInTable[]>([]);
+  const [deletedOrders, setDeletedOrders] = useState<number[] | undefined>([]);
+
+  const hasSearchFilter = Boolean(filterValue);
+
+  useEffect(() => {
+    if (orders?.payload) {
+      const orderInTableArray: OrderInTable[] = orders.payload
+        .filter(order => order.eventId === props.id) // Filter by eventId
+        .map(order => ({
+          id: order.id,
+          unit: order.unit,
+          description: order.description,
+          unitPrice: order.unitPrice,
+          quantity: order.quantity,
+          total: order.unitPrice * order.quantity,
+          isEnabled: true,
+        }));
+      setOrdersInTable(orderInTableArray);
+
+      setOrdersInTable(prevOrders => {
+        const updatedOrders = [...prevOrders];
+
+        Object.values(OrderType).forEach(type => {
+          let currentOrder = prevOrders.find(order => order.description === type);
+          if (!currentOrder) {
+            const newOrder = {
+              description: type,
+              unitPrice: 0,
+              quantity: 1,
+              isEnabled: false,
+              unit: undefined
+            }
+            updatedOrders.push(newOrder);
+          }
+        });
+
+        return updatedOrders;
+      })
+    }
+  }, [orders, props.id]);
+
+  useEffect(() => {
+    props.update({ newOrders, updatedOrders, deletedOrders });
+
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['unit', 'unitPrice']));
+      } else {
+        setVisibleColumns(new Set(orderColumns.map((c) => c.uid)));
+      }
+    };
+
+    updateVisibleColumns();
+    window.addEventListener('resize', updateVisibleColumns);
+    return () => window.removeEventListener('resize', updateVisibleColumns);
+  }, [ordersInTable]);
+
+  const addOrder = (order: OrderInTable) => {
+    const newOrder = { ...order, isEnabled: true };
+    setOrdersInTable((prevOrders) => {
+      const isOrderInTable = prevOrders.some(o => o.description === order.description);
+      if (!isOrderInTable) {
+        return [...prevOrders, newOrder];
+      }
+      return prevOrders;
+    });
+
+    setNewOrders((prevNewOrders) => [...prevNewOrders, newOrder]);
+  };
+
+  const deleteOrder = (orderName: string) => {
+    setOrdersInTable((prevOrders) => {
+      const updatedOrders = prevOrders.map(order =>
+        order.description === orderName ? { ...order, isEnabled: false } : order
+      );
+
+      const deletedOrder = prevOrders.find(order => order.description === orderName);
+
+      if (deletedOrder && deletedOrder.id) {
+        setDeletedOrders((prevDeleted) =>
+          prevDeleted ? [...prevDeleted, deletedOrder.id!] : [deletedOrder.id!]
+        );
+      } else {
+        setNewOrders((prevNewOrders) =>
+          prevNewOrders.filter(order => order.description !== orderName)
+        );
+      }
+
+      return updatedOrders;
+    });
+  };
+
+  const editOrder = (orderName: string, updatedOrder: Partial<OrderInTable>) => {
+    setOrdersInTable((prevOrders) => {
+      const updatedOrders = prevOrders.map(order =>
+        order.description === orderName ? { ...order, ...updatedOrder } : order
+      );
+
+      const orderToUpdate = updatedOrders.find(order => order.description === orderName);
+
+      if (orderToUpdate && orderToUpdate?.id) {
+        setUpdatedOrders((prevUpdated) => {
+          const isAlreadyUpdated = prevUpdated.some(order => order.id === orderToUpdate.id);
+          if (!isAlreadyUpdated) {
+            return [...prevUpdated, orderToUpdate];
+          } else {
+            return prevUpdated.map(order =>
+              order.id === orderToUpdate.id ? orderToUpdate : order
+            );
+          }
+        });
+      } else {
+        setNewOrders((prevNewOrders) => {
+          const updatedNewOrders = [...prevNewOrders];
+          const newOrderIndex = updatedNewOrders.findIndex(order => order.description === orderName);
+          if (newOrderIndex !== -1) {
+            updatedNewOrders[newOrderIndex] = { ...updatedNewOrders[newOrderIndex], ...updatedOrder };
+          }
+          return updatedNewOrders;
+        });
+      }
+
+      return updatedOrders;
+    });
+  };
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return orderColumns;
+    return orderColumns.filter((column) => Array.from(visibleColumns).includes(column.uid));
+  }, [visibleColumns]);
+
+  const filteredItems = React.useMemo(() => {
+    let filteredOrders = [...(ordersInTable || [])];
+
+    if (hasSearchFilter) {
+      filteredOrders = filteredOrders.filter((order) =>
+        order.description.toLowerCase().includes(filterValue.toLowerCase())
+      );
+    }
+
+    return filteredOrders;
+  }, [ordersInTable, filterValue]);
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage);
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    return filteredItems.slice(start, end);
+  }, [page, filteredItems, rowsPerPage]);
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof OrderInTable];
+      const second = b[sortDescriptor.column as keyof OrderInTable];
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second ? -1 : first > second ? 1 : 0
+        : 0;
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp;
+    });
+  }, [sortDescriptor, items]);
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1);
+    }
+  }, [page, pages]);
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  }, [page]);
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value);
+      setPage(1);
+    } else {
+      setFilterValue('');
+    }
+  }, []);
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('');
+    setPage(1);
+  }, []);
+
+  const renderCell = React.useCallback((order: OrderInTable, columnKey: React.Key) => {
+    const cellValue = order[columnKey as keyof OrderInTable];
+    switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{order.description}</p>
+          </div>
+        );
+      case 'unit':
+        return (
+          <Autocomplete
+            label="Select Unit"
+            className="mt-4 md:max-w-72"
+            variant="underlined"
+            value={order.unit}
+            selectedKey={order.unit}
+            isRequired
+            inputProps={{
+              classNames: {
+                base: 'bg-white',
+                inputWrapper:
+                  "px-1 bg-white shadow-none border-b-3 border-light-200 rounded-none after:content-[''] after:w-0 after:origin-center after:absolute after:left-1/2 after:-translate-x-1/2 after:-bottom-[2px] after:h-[2px] data-[open=true]:after:w-full data-[focus=true]:after:w-full after:bg-light-900 after:transition-width motion-reduce:after:transition-none",
+                label: 'text-light-300 dark:text-secondary-400 text-small',
+                input: 'text-secondary-950 dark:text-white',
+              },
+            }}
+            onSelectionChange={(value) => editOrder(order.description, { unit: value as UnitType})}
+          >
+            <AutocompleteItem key={`${UnitType.KG}`} value={`${UnitType.KG}`}>
+              KG
+            </AutocompleteItem>
+            <AutocompleteItem key={`${UnitType.DZ}`} value={`${UnitType.DZ}`}>
+              DZ
+            </AutocompleteItem>
+            <AutocompleteItem key={`${UnitType.UN}`} value={`${UnitType.UN}`}>
+              UN
+            </AutocompleteItem>
+          </Autocomplete>
+        );
+      case 'unitPrice':
+        return (
+          <Input
+            type="number"
+            value={order.unitPrice?.toString() ?? '0'}
+            placeholder="Set Price"
+            isRequired={true}
+            variant="underlined"
+            onChange={(e) => {
+              const newPrice = parseInt(e.target.value);
+              const { error } = orderSchema.validate({ unitPrice: newPrice, quantity: order.quantity });
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              } else {
+                editOrder(order.description, { unitPrice: newPrice });
+              }
+            }}
+          />
+        );
+      case 'quantity':
+        return (
+          <Input
+            type="number"
+            value={order.quantity?.toString() ?? '1'}
+            placeholder="Set Quantity"
+            isRequired={true}
+            variant="underlined"
+            onChange={(e) => {
+              const newQuantity = parseInt(e.target.value);
+              const { error } = orderSchema.validate({ quantity: newQuantity, unitPrice: order.unitPrice });
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              } else {
+                editOrder(order.description, { quantity: newQuantity });
+              }
+            }}
+          />
+        );
+      case 'total':
+        return (
+          <div>
+            ${order.quantity && order.unitPrice ? order.quantity * order.unitPrice : 0}
+          </div>
+        );
+      case 'action':
+        if (order.isEnabled) {
+          return (
+            <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+              onClick={() => deleteOrder(order.description)}
+              isIconOnly
+              size="sm"
+            >
+              <Trash2 size={22} />
+            </Button>
+          );
+        } else {
+          return (
+            <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+              onClick={() => {
+                setOrdersInTable(prevOrders =>
+                  prevOrders.map(o =>
+                    o.description === order.description ? { ...o, isEnabled: true} : o
+                  )
+                )
+                addOrder(order)
+              }}
+              isIconOnly
+              size="sm"
+            >
+              <PlusIcon size={22} />
+            </Button>
+          );
+        }
+      default:
+        return cellValue;
+    }
+  }, []);
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder="Search by Name"
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {orderColumns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {column.name}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {ordersInTable.length} orders
+          </span>
+        </div>
+      </div>
+    );
+  }, [filterValue, visibleColumns, ordersInTable.length, onSearchChange]);
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    );
+  }, [items.length, page, pages, hasSearchFilter]);
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'action' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent="No orders found" items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.description}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+};
+
+const CakeTable = (props: cakeTableProps) => {
+  const cakesApi = new CakesApi()
+
+  const { data: cakes, isLoading } = useQuery<ApiResponse<Cake[]>, ServerError>({
+    queryKey: ['cakes'],
+    queryFn: async () => await cakesApi.getCakes(),
+    refetchInterval: 5000
+  })
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_CAKES_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(3)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'description',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [cakesInTable, setCakesInTable] = React.useState<CakeInTable[]>([])
+  const [newCakes, setNewCakes] = React.useState<CakeInTable[]>([])
+  const [updatedCakes, setUpdatedCakes] = React.useState<CakeInTable[]>([])
+  const [deletedCakes, setDeletedCakes] = React.useState<number[] | undefined>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  useEffect(() => {
+    if (cakes?.payload) {
+      const cakeInTableArray: CakeInTable[] = cakes.payload
+        .filter(cake => cake.eventId === props.id) // Filter by eventId
+        .map(cake => ({
+          id: cake.id,
+          type: cake.type,
+          description: cake.description,
+          unitPrice: cake.unitPrice,
+          quantity: cake.quantity,
+          total: cake.unitPrice * cake.quantity,
+          isEnabled: true,
+        }));
+        console.log(cakeInTableArray)
+      setCakesInTable(cakeInTableArray);
+
+      setCakesInTable(prevCakes => {
+        const updatedCakes = [...prevCakes];
+
+        Object.values(CakeDescription).forEach(type => {
+          let currentCake = prevCakes.find(cake => cake.description === type);
+          if (!currentCake) {
+            const newCake = {
+              description: type,
+              unitPrice: 0,
+              quantity: 1,
+              isEnabled: false,
+              type: ''
+            }
+            updatedCakes.push(newCake);
+          }
+        })
+
+        return updatedCakes
+      })
+    }
+  }, [cakes, props.id]);
+
+  useEffect(() => {
+    props.update({newCakes, updatedCakes, deletedCakes})
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['type', 'price']))
+      } else {
+        setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [cakesInTable])
+
+  const addCake =  (cake: CakeInTable) => {
+    const newCake = { ...cake, isEnabled: true };
+    setCakesInTable((prevCakes) => {
+      const isCakeInTable = prevCakes.some(c => c.description === cake.description);
+      if (!isCakeInTable) {
+        return [...prevCakes, newCake];
+      }
+      return prevCakes;
+    })
+
+    setNewCakes(prevNewCakes => [...prevNewCakes, newCake])
+  }
+
+  // Function to delete an activity by name
+  const deleteCake = (cakeName: string) => {
+    setCakesInTable(prevCakes => {
+      console.log(prevCakes)
+      const updatedCakes = prevCakes.map(cake => 
+        cake.description === cakeName ? { ...cake, isEnabled: false } : cake
+      );
   
-//       if (isInNewExtras) {
-//         setNewExtras(prevNewExtras => prevNewExtras.filter(extra => extra.description !== extraName));
-//       } else {
-//         // If it's not in newExtras, check in activities
-//         const deletedExtra = prevExtras.find(extra => extra.description === extraName);
-//         console.log(deletedExtra)
-//         if (deletedExtra) {
-//           setDeletedExtras((prevDeleted) => {
-//             // Ensure `deletedExtra.id` is a number before pushing it into the array.
-//             let id = deletedExtra.id;
-//             console.log(id)
-//             if (id) {
-//               if (prevDeleted !== undefined) {
-//                 return [...prevDeleted, id];
-//               } else {
-//                 return [id];
-//               }
-//             }
-//           });
-          
-          
-//         }
-//       }
+      // Check if the activity is in newActivities
+      const deletedCake = prevCakes.find(cake => cake.description === cakeName);
   
-//       return updatedExtras;
-//     });
-//   };
+      if (deletedCake && deletedCake.id) {
+        setDeletedCakes(prevDeleted => prevDeleted ? [...prevDeleted, deletedCake.id!] : [deletedCake.id!])
+      } else {
+        setNewCakes((prevNewCakes) =>
+          prevNewCakes.filter(cake => cake.description !== cakeName)
+        )
+      }
+  
+      return updatedCakes;
+    });
+  };
 
-// // Function to edit an extra by name
-// const editExtra = (extraName: string, updatedExtra: Partial<ExtraInTable>) => {
-//   setExtrasInTable(prevExtras => {
-//     const index = prevExtras.findIndex(extra => extra.description === extraName);
+// Function to edit an activity by name
+const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
+  setCakesInTable(prevCakes => {
+    const updatedCakes = prevCakes.map(cake => 
+      cake.description === cakeName ? { ...cake, ...updatedCake } :  cake
+    );
 
-//     if (index !== -1) {
-//       const updatedExtras = [...prevExtras];
-//       updatedExtras[index] = { ...updatedExtras[index], ...updatedExtra };
+    const cakeToUpdate = updatedCakes.find(cake => cake.description === cakeName);
 
-//       // Check if the extra is in newExtras
-//       const isInNewExtras = newExtras.some(extra => extra.description === extraName);
+    if (cakeToUpdate && cakeToUpdate?.id) {
+      setUpdatedCakes((prevUpdated) => {
+        const isAlreadyUpdated = prevUpdated.some(cake => cake.id === cakeToUpdate.id);
+        if (!isAlreadyUpdated) {
+          return [...prevUpdated, cakeToUpdate];
+        } else {
+          return prevUpdated.map(cake =>
+            cake.id === cakeToUpdate.id ? cakeToUpdate : cake
+          );
+        }
+      });
+    } else {
+      setNewCakes((prevNewCakes) => {
+        const updatedNewCakes = [...prevNewCakes];
+        const newCakeIndex = updatedNewCakes.findIndex(cake => cake.description === cakeName);
+        if (newCakeIndex !== -1) {
+          updatedNewCakes[newCakeIndex] = { ...updatedNewCakes[newCakeIndex], ...updatedCake };
+        }
+        return updatedNewCakes;
+      })
+    }
 
-//       if (isInNewExtras) {
-//         // Update the extra in newExtras
-//         setNewExtras(prevNewExtras => {
-//           const updatedNewExtras = [...prevNewExtras];
-//           const newExtraIndex = updatedNewExtras.findIndex(extra => extra.description === extraName);
-//           updatedNewExtras[newExtraIndex] = { ...updatedNewExtras[newExtraIndex], ...updatedExtra };
-//           return updatedNewExtras;
-//         });
-//       } else {
-//         // If it's not in newExtras, add it to updatedExtras
-//         setUpdatedExtras(prevUpdated => [...prevUpdated, updatedExtras[index]]);
-//       }
+    return updatedCakes
 
-//       return updatedExtras;
-//     } else {
-//       console.log(`Extra with name "${extraName}" not found.`);
-//       return prevExtras;
-//     }
-//   });
-// };
+    
+  });
+};
 
-//   const headerColumns = React.useMemo(() => {
-//     if (visibleColumns === 'all') return extraColumns
-//     return extraColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
-//   }, [visibleColumns])
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return cakeColumns
+    return cakeColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
 
-//   const filteredItems = React.useMemo(() => {
-//     let filteredExtras = [...(extrasInTable || [])]
+  const filteredItems = React.useMemo(() => {
+    let filteredCakes = [...(cakesInTable || [])]
 
-//     if (hasSearchFilter) {
-//       filteredExtras = filteredExtras.filter((extra) =>
-//         extra.description.toLowerCase().includes(filterValue.toLowerCase())
-//       )
-//     }
+    if (hasSearchFilter) {
+      filteredCakes = filteredCakes.filter((cake) =>
+        cake.description.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
 
-//     return filteredExtras
-//   }, [extrasInTable, filterValue])
+    return filteredCakes
+  }, [cakesInTable, filterValue])
 
-//   const pages = Math.ceil(filteredItems.length / rowsPerPage)
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
 
-//   const items = React.useMemo(() => {
-//     const start = (page - 1) * rowsPerPage
-//     const end = start + rowsPerPage
-//     return filteredItems.slice(start, end)
-//   }, [page, filteredItems, rowsPerPage])
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
 
-//   const sortedItems = React.useMemo(() => {
-//     return [...items].sort((a, b) => {
-//       const first = a[sortDescriptor.column as keyof ExtraInTable]
-//       const second = b[sortDescriptor.column as keyof ExtraInTable]
-//       const cmp = first !== null && first !== undefined && second !== null && second !== undefined
-//         ? first < second
-//           ? -1
-//           : first > second
-//             ? 1
-//             : 0
-//         : 0
-//       return sortDescriptor.direction === 'descending' ? -cmp : cmp
-//     })
-//   }, [sortDescriptor, items])
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof CakeInTable]
+      const second = b[sortDescriptor.column as keyof CakeInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
 
-//   const onNextPage = React.useCallback(() => {
-//     if (page < pages) {
-//       setPage(page + 1)
-//     }
-//   }, [page, pages])
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
 
-//   const onPreviousPage = React.useCallback(() => {
-//     if (page > 1) {
-//       setPage(page - 1)
-//     }
-//   }, [page])
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
 
-//   // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-//   //   setRowsPerPage(Number(e.target.value))
-//   //   setPage(1)
-//   // }, [])
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
 
-//   const onSearchChange = React.useCallback((value?: string) => {
-//     if (value) {
-//       setFilterValue(value)
-//       setPage(1)
-//     } else {
-//       setFilterValue('')
-//     }
-//   }, [])
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
 
-//   const onClear = React.useCallback(() => {
-//     setFilterValue('')
-//     setPage(1)
-//   }, [])
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
 
-//   const renderCell = React.useCallback((extra: ExtraInTable, columnKey: React.Key) => {
-//     const cellValue = extra[columnKey as keyof ExtraInTable]
-//     switch (columnKey) {
-//       case 'unitPrice':
-//         return (
-//           <div>
-//             ${extra.unitPrice}
-//           </div>
-//         )
-//       case 'total':
-//         return (
-//         <div>
-//             ${extra.total}
-//           </div>
-//         )
-//       case 'action':
-//         if (Array.isArray(cellValue)) {
-//           return (
-//               <div className='flex gap-4'>
-//                   <EditExtraFormPopUp edit={editExtra} extra={extra}/>
-//                   <Button onClick={() => deleteExtra(extra.description)} isIconOnly size='sm'>{cellValue[1]}</Button>
-//               </div>
-//           );
-//       } else {
-//           console.error("Expected 'action' to be an array, but got:", cellValue);
-//           return null;
-//       }
-//       default:
-//         return cellValue
-//     }
-//   }, [])
+  const renderCell = React.useCallback((cake: CakeInTable, columnKey: React.Key) => {
+    const cellValue = cake[columnKey as keyof CakeInTable];
+    switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{cake.description}</p>
+          </div>
+        );
+        case 'type':
+        return (
+          <Input
+                type='text'
+                value={cake.type ?? ''}
+                placeholder='Enter Type'
+                isRequired={true}
+                className="mt-4 md:max-w-72"
+                variant='underlined'
+                onChange={(e) => {
+                  const newType = e.target.value;
+                  const {error} = cakeSchema.validate({unitPrice: cake.unitPrice, quantity: cake.quantity, type: newType});
+    
+                  if (error) {
+                    console.error(error.message);
+                    toast.error(error.message);
+                  } else {
+                    editCake(cake.description, { type: newType})
+                  }
+                }}
+              />
+        )
+      case 'unitPrice':
+        return (
+          <Input
+            type="number"
+            value={cake.unitPrice?.toString() ?? '0'}
+            placeholder="Set Price"
+            isRequired={true}
+            variant="underlined"
+            onChange={(e) => {
+              const newPrice = parseInt(e.target.value);
+              const { error } = orderSchema.validate({ unitPrice: newPrice, quantity: cake.quantity });
 
-//   const topContent = React.useMemo(() => {
-//     return (
-//       <div className="flex flex-col gap-4">
-//         <div className="flex items-end justify-between gap-3">
-//           <Input
-//             type="text"
-//             placeholder={'Search by Name'}
-//             size="md"
-//             radius="sm"
-//             variant="bordered"
-//             className="max-w-sm"
-//             classNames={{
-//               base: ['bg-transparent', 'shadow-none'],
-//               inputWrapper: [
-//                 'bg-light-100',
-//                 'shadow-none',
-//                 'border-[0px] group-data-[focus=true]:border-[0px]',
-//                 'bg-light-100',
-//                 'border-secondary-200 dark:border-secondary-700',
-//                 'text-secondary-600 dark:text-secondary-50',
-//                 'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
-//                 'transition-colors duration-200 ease-in-out',
-//               ],
-//               input: ['bg-light-100'],
-//               clearButton: ['text-secondary-300'],
-//             }}
-//             isClearable
-//             value={filterValue}
-//             onClear={onClear}
-//             onValueChange={onSearchChange}
-//             startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
-//           />
-//           <div className="flex gap-3">
-//             <Dropdown>
-//               <DropdownTrigger className="hidden sm:flex">
-//                 <Button
-//                   radius="sm"
-//                   endContent={<ChevronDownIcon className="text-small" />}
-//                   variant="flat"
-//                 >
-//                   Columns
-//                 </Button>
-//               </DropdownTrigger>
-//               <DropdownMenu
-//                 disallowEmptySelection
-//                 aria-label="Table Columns"
-//                 closeOnSelect={false}
-//                 selectedKeys={visibleColumns}
-//                 selectionMode="multiple"
-//                 onSelectionChange={setVisibleColumns}
-//               >
-//                 {columns.map((column) => (
-//                   <DropdownItem key={column.uid} className="capitalize">
-//                     {toCapitalCase(column.name)}
-//                   </DropdownItem>
-//                 ))}
-//               </DropdownMenu>
-//             </Dropdown>
-//           </div>
-//               <ExtraFormPopUp add={addExtra}/>
-//         </div>
-//         <div className="flex items-center justify-between">
-//           <span className="text-small text-default-400">
-//             Total {extrasInTable?.length} extras
-//           </span>
-//           {/* <label className="flex items-center text-small text-default-400">
-//             Rows per page:
-//             <select
-//               className="bg-transparent rounded-md text-small text-default-400 outline-none"
-//               onChange={onRowsPerPageChange}
-//             >
-//               <option value="5">2</option>
-//               <option value="10">10</option>
-//               <option value="15">15</option>
-//             </select>
-//           </label> */}
-//         </div>
-//       </div>
-//     )
-//   }, [
-//     filterValue,
-//     visibleColumns,
-//     // onRowsPerPageChange,
-//     extrasInTable?.length,
-//     onSearchChange,
-//     hasSearchFilter
-//   ])
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              } else {
+                editCake(cake.description, { unitPrice: newPrice });
+              }
+            }}
+          />
+        );
+      case 'quantity':
+        return (
+          <Input
+            type="number"
+            value={cake.quantity?.toString() ?? '1'}
+            placeholder="Set Quantity"
+            isRequired={true}
+            variant="underlined"
+            onChange={(e) => {
+              const newQuantity = parseInt(e.target.value);
+              const { error } = orderSchema.validate({ quantity: newQuantity, unitPrice: cake.unitPrice });
 
-//   const bottomContent = React.useMemo(() => {
-//     return (
-//       <div className="z-0 flex items-center justify-between px-2 py-2">
-//         <Pagination
-//           isCompact
-//           showControls
-//           showShadow
-//           color="danger"
-//           page={page}
-//           total={pages}
-//           onChange={setPage}
-//         />
-//       </div>
-//     )
-//   }, [items.length, page, pages, hasSearchFilter])
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              } else {
+                editCake(cake.description, { quantity: newQuantity });
+              }
+            }}
+          />
+        );
+      case 'total':
+        return (
+          <div>
+            ${cake.quantity && cake.unitPrice ? cake.quantity * cake.unitPrice : 0}
+          </div>
+        );
+      case 'action':
+        if (cake.isEnabled) {
+          return (
+            <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+              onClick={() => deleteCake(cake.description)}
+              isIconOnly
+              size="sm"
+            >
+              <Trash2 size={22} />
+            </Button>
+          );
+        } else {
+          return (
+            <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+              onClick={() => {
+                setCakesInTable(prevCakes =>
+                  prevCakes.map(c =>
+                    c.description === cake.description ? { ...c, isEnabled: true} : c
+                  )
+                )
+                addCake(cake)
+              }}
+              isIconOnly
+              size="sm"
+            >
+              <PlusIcon size={22} />
+            </Button>
+          );
+        }
+      default:
+        return cellValue;
+    }
+  }, []);
 
-//   // if (isLoading) {
-//   //   return (
-//   //     <div className="flex h-screen items-center justify-center">
-//   //       <Spinner />
-//   //     </div>
-//   //   )
-//   // }
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {cakesInTable?.length} cakes
+          </span>
+          {/* <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">2</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label> */}
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    // onRowsPerPageChange,
+    cakesInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
 
-//   return (
-//     <div>
-//       <div className="z-0 w-full px-4 py-4 md:px-4">
-//         <Table
-//           className="z-0"
-//           aria-label="Example table with custom cells, pagination and sorting"
-//           isHeaderSticky
-//           bottomContent={bottomContent}
-//           bottomContentPlacement="outside"
-//           classNames={{
-//             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
-//           }}
-//           sortDescriptor={sortDescriptor}
-//           topContent={topContent}
-//           topContentPlacement="outside"
-//           onSortChange={setSortDescriptor}
-//         >
-//           <TableHeader columns={headerColumns}>
-//             {(column) => (
-//               <TableColumn
-//                 key={column.uid}
-//                 align={column.uid === 'actions' ? 'center' : 'start'}
-//                 allowsSorting={column.sortable}
-//               >
-//                 {column.name}
-//               </TableColumn>
-//             )}
-//           </TableHeader>
-//           <TableBody emptyContent={'No extras found'} items={sortedItems}>
-//             {(item) => (
-//               <TableRow key={item.description}>
-//                 {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-//               </TableRow>
-//             )}
-//           </TableBody>
-//         </Table>
-//       </div>
-//     </div>
-//   )
-// }
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No cakes found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.description}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
+const ExtraTable = (props: extraTableProps) => {
+  const extrasApi = new ExtrasApi()
+
+  const { data: extras, isLoading } = useQuery<ApiResponse<Extra[]>, ServerError>({
+    queryKey: ['extras'],
+    queryFn: async () => await extrasApi.getExtras(),
+    refetchInterval: 5000
+  })
+  const [filterValue, setFilterValue] = React.useState('')
+  const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
+    new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
+  )
+  const [rowsPerPage, setRowsPerPage] = React.useState(4)
+  const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
+    column: 'description',
+    direction: 'ascending',
+  })
+
+  const [page, setPage] = React.useState(1)
+
+  const [extrasInTable, setExtrasInTable] = React.useState<ExtraInTable[]>([])
+  const [newExtras, setNewExtras] = React.useState<ExtraInTable[]>([])
+  const [updatedExtras, setUpdatedExtras] = React.useState<ExtraInTable[]>([])
+  const [deletedExtras, setDeletedExtras] = React.useState<number[] | undefined>([])
+
+  const hasSearchFilter = Boolean(filterValue)
+
+  useEffect(() => {
+    if (extras?.payload) {
+      const extraInTableArray: ExtraInTable[] = extras.payload
+        .filter(extra => extra.eventId === props.id) // Filter by eventId
+        .map(extra => ({
+          id: extra.id,
+          description: extra.description,
+          unitPrice: extra.unitPrice,
+          quantity: extra.quantity,
+          total: (extra.unitPrice * extra.quantity),
+          isEnabled: true
+        }));
+        console.log(extraInTableArray)
+      setExtrasInTable(extraInTableArray);
+
+      setExtrasInTable(prevExtras => {
+        const updatedExtras = [...prevExtras];
+
+        Object.values(ExtraType).forEach(type => {
+          let currentExtra = prevExtras.find(extra => extra.description === type);
+          if (!currentExtra) {
+            const newExtra = {
+              description: type,
+              unitPrice: 0,
+              quantity: 1,
+              isEnabled: false,
+            }
+            updatedExtras.push(newExtra);
+          }
+        });
+
+        return updatedExtras;
+      })
+    }
+  }, [extras, props.id]);
+
+  useEffect(() => {
+    props.update({newExtras, updatedExtras, deletedExtras})
+    const updateVisibleColumns = () => {
+      if (window.innerWidth <= 1024) {
+        setVisibleColumns(new Set(['description', 'unitPrice']))
+      } else {
+        setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
+      }
+    }
+
+    updateVisibleColumns()
+    window.addEventListener('resize', updateVisibleColumns)
+    return () => window.removeEventListener('resize', updateVisibleColumns)
+  }, [extrasInTable])
+
+  const addExtra =  (extra: ExtraInTable) => {
+    const newExtra = { ...extra, isEnabled: true };
+    setExtrasInTable(prevExtras => {
+      const isExtraInTable = prevExtras.some(e => e.description === extra.description);
+      if (!isExtraInTable) {
+        return [...extrasInTable, extra]
+      }
+      return prevExtras
+    });
+
+    setNewExtras(prevNewExtras => [...prevNewExtras, newExtra])
+  }
+
+  // Function to delete an extra by name
+  const deleteExtra = (extraName: string) => {
+    setExtrasInTable(prevExtras => {
+      console.log(prevExtras)
+      const updatedExtras = prevExtras.map(extra => 
+        extra.description !== extraName ? { ...extra, isEnabled: false } : extra
+      );
+
+      const deletedExtra = prevExtras.find(extra => extra.description === extraName);
+
+      if (deletedExtra && deletedExtra.id) {
+        setDeletedExtras((prevDeleted) =>
+          prevDeleted ? [...prevDeleted, deletedExtra.id!] : [deletedExtra.id!]
+        );
+      } else {
+        setNewExtras((prevNewExtras) =>
+          prevNewExtras.filter(extra => extra.description !== extraName)
+        );
+      }
+      
+      return updatedExtras
+    });
+  };
+
+// Function to edit an extra by name
+const editExtra = (extraName: string, updatedExtra: Partial<ExtraInTable>) => {
+  setExtrasInTable(prevExtras => {
+    const updatedExtras = prevExtras.map(extra =>
+      extra.description === extraName ? { ...extra, ...updatedExtra } : extra
+    );
+
+    const extraToUpdate = updatedExtras.find(extra => extra.description === extraName);
+
+    if (extraToUpdate && extraToUpdate.id) {
+      setUpdatedExtras((prevUpdated) => {
+        const isAlreadyUpdated = prevUpdated.some(extra => extra.id === extraToUpdate.id);
+        if (!isAlreadyUpdated) {
+          return [...prevUpdated, extraToUpdate]
+        } else {
+          return prevUpdated.map(extra =>
+            extra.id === extraToUpdate.id ? extraToUpdate : extra
+          );
+        }
+      });
+    } else {
+      setNewExtras((prevNewExtras) => {
+        const updatedNewExtras = [...prevNewExtras];
+        const newExtraIndex = updatedNewExtras.findIndex(extra => extra.description === extraName);
+        if (newExtraIndex !== -1) {
+          updatedNewExtras[newExtraIndex] = { ...updatedNewExtras[newExtraIndex], ...updatedExtra };
+        }
+        return updatedNewExtras;
+      });
+    }
+
+    return updatedExtras;
+  });
+};
+
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === 'all') return extraColumns
+    return extraColumns.filter((column) => Array.from(visibleColumns).includes(column.uid))
+  }, [visibleColumns])
+
+  const filteredItems = React.useMemo(() => {
+    let filteredExtras = [...(extrasInTable || [])]
+
+    if (hasSearchFilter) {
+      filteredExtras = filteredExtras.filter((extra) =>
+        extra.description.toLowerCase().includes(filterValue.toLowerCase())
+      )
+    }
+
+    return filteredExtras
+  }, [extrasInTable, filterValue])
+
+  const pages = Math.ceil(filteredItems.length / rowsPerPage)
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage
+    const end = start + rowsPerPage
+    return filteredItems.slice(start, end)
+  }, [page, filteredItems, rowsPerPage])
+
+  const sortedItems = React.useMemo(() => {
+    return [...items].sort((a, b) => {
+      const first = a[sortDescriptor.column as keyof ExtraInTable]
+      const second = b[sortDescriptor.column as keyof ExtraInTable]
+      const cmp = first !== null && first !== undefined && second !== null && second !== undefined
+        ? first < second
+          ? -1
+          : first > second
+            ? 1
+            : 0
+        : 0
+      return sortDescriptor.direction === 'descending' ? -cmp : cmp
+    })
+  }, [sortDescriptor, items])
+
+  const onNextPage = React.useCallback(() => {
+    if (page < pages) {
+      setPage(page + 1)
+    }
+  }, [page, pages])
+
+  const onPreviousPage = React.useCallback(() => {
+    if (page > 1) {
+      setPage(page - 1)
+    }
+  }, [page])
+
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
+
+  const onSearchChange = React.useCallback((value?: string) => {
+    if (value) {
+      setFilterValue(value)
+      setPage(1)
+    } else {
+      setFilterValue('')
+    }
+  }, [])
+
+  const onClear = React.useCallback(() => {
+    setFilterValue('')
+    setPage(1)
+  }, [])
+
+  const renderCell = React.useCallback((extra: ExtraInTable, columnKey: React.Key) => {
+    const cellValue = extra[columnKey as keyof ExtraInTable]
+    switch (columnKey) {
+      case 'description':
+        return (
+          <div>
+            <p className="text-bold">{extra.description}</p>
+          </div>
+        )
+      case 'unitPrice':
+        return (
+            <Input
+              type='number'
+              value={extra.unitPrice?.toString() ?? '0'}
+              placeholder='Set Price'
+              isRequired={true}
+              className="mt-4 md:max-w-72"
+              variant='underlined'
+              onChange={(e) => {
+                const newPrice = parseInt(e.target.value);
+                const {error} = extraSchema.validate({unitPrice: newPrice, quantity: extra.quantity});
+  
+                if (error) {
+                  console.error(error.message);
+                  toast.error(error.message);
+                } else {
+                  editExtra(extra.description, { unitPrice: newPrice });
+                }
+              }}
+            />
+          )
+      case 'quantity':
+        return (
+          <Input
+            type='number'
+            value={extra.quantity?.toString() ?? '1'}
+            placeholder='Set Quantity'
+            isRequired={true}
+            className="mt-4 md:max-w-72"
+            variant='underlined'
+            onChange={(e) => {
+              const newQuantity = parseInt(e.target.value);
+              const {error} = extraSchema.validate({quantity: newQuantity, unitPrice: extra.unitPrice});
+
+              if (error) {
+                console.error(error.message);
+                toast.error(error.message);
+              } else {
+                editExtra(extra.description, { quantity: newQuantity });
+              }
+            }}
+          />
+        )
+      case 'total':
+        return (
+        <div>
+            ${extra.quantity && extra.unitPrice ? (extra.quantity * extra.unitPrice) : 0}
+          </div>
+        )
+        case 'action':
+          if (extra.isEnabled) {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => deleteExtra(extra.description)}
+                isIconOnly
+                size='sm'
+              >
+                <Trash2 size={22}/>
+              </Button>
+            );
+          } else {
+            return (
+              <Button
+              color="danger"
+              radius="sm"
+              variant="solid"
+                onClick={() => {
+                  setExtrasInTable(prevExtras =>
+                    prevExtras.map(e =>
+                      e.description === extra.description ? { ...e, isEnabled: true } : e
+                    )
+                  );
+                  addExtra(extra);
+                }}
+                isIconOnly
+                size='sm'
+              >
+                <PlusIcon size={22} />
+              </Button>
+            );
+          }
+      default:
+        return cellValue
+    }
+  }, [])
+
+  const topContent = React.useMemo(() => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-3">
+          <Input
+            type="text"
+            placeholder={'Search by Name'}
+            size="md"
+            radius="sm"
+            variant="bordered"
+            className="max-w-sm"
+            classNames={{
+              base: ['bg-transparent', 'shadow-none'],
+              inputWrapper: [
+                'bg-light-100',
+                'shadow-none',
+                'border-[0px] group-data-[focus=true]:border-[0px]',
+                'bg-light-100',
+                'border-secondary-200 dark:border-secondary-700',
+                'text-secondary-600 dark:text-secondary-50',
+                'placeholder:text-secondary-400 dark:placeholder:text-secondary-400',
+                'transition-colors duration-200 ease-in-out',
+              ],
+              input: ['bg-light-100'],
+              clearButton: ['text-secondary-300'],
+            }}
+            isClearable
+            value={filterValue}
+            onClear={onClear}
+            onValueChange={onSearchChange}
+            startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
+          />
+          <div className="flex gap-3">
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  radius="sm"
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  variant="flat"
+                >
+                  Columns
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Table Columns"
+                closeOnSelect={false}
+                selectedKeys={visibleColumns}
+                selectionMode="multiple"
+                onSelectionChange={setVisibleColumns}
+              >
+                {columns.map((column) => (
+                  <DropdownItem key={column.uid} className="capitalize">
+                    {toCapitalCase(column.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-small text-default-400">
+            Total {extrasInTable?.length} extras
+          </span>
+          {/* <label className="flex items-center text-small text-default-400">
+            Rows per page:
+            <select
+              className="bg-transparent rounded-md text-small text-default-400 outline-none"
+              onChange={onRowsPerPageChange}
+            >
+              <option value="5">2</option>
+              <option value="10">10</option>
+              <option value="15">15</option>
+            </select>
+          </label> */}
+        </div>
+      </div>
+    )
+  }, [
+    filterValue,
+    visibleColumns,
+    // onRowsPerPageChange,
+    extrasInTable?.length,
+    onSearchChange,
+    hasSearchFilter
+  ])
+
+  const bottomContent = React.useMemo(() => {
+    return (
+      <div className="z-0 flex items-center justify-between px-2 py-2">
+        <Pagination
+          isCompact
+          showControls
+          showShadow
+          color="danger"
+          page={page}
+          total={pages}
+          onChange={setPage}
+        />
+      </div>
+    )
+  }, [items.length, page, pages, hasSearchFilter])
+
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex h-screen items-center justify-center">
+  //       <Spinner />
+  //     </div>
+  //   )
+  // }
+
+  return (
+    <div>
+      <div className="z-0 w-full px-4 py-4 md:px-4">
+        <Table
+          className="z-0"
+          aria-label="Example table with custom cells, pagination and sorting"
+          isHeaderSticky
+          bottomContent={bottomContent}
+          bottomContentPlacement="outside"
+          classNames={{
+            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+          }}
+          sortDescriptor={sortDescriptor}
+          topContent={topContent}
+          topContentPlacement="outside"
+          onSortChange={setSortDescriptor}
+        >
+          <TableHeader columns={headerColumns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.uid === 'actions' ? 'center' : 'start'}
+                allowsSorting={column.sortable}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody emptyContent={'No extras found'} items={sortedItems}>
+            {(item) => (
+              <TableRow key={item.description}>
+                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
 
 const Section = (props: SectionProps) => {
   const { title, description, form } = props
@@ -2154,7 +2345,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
   }
 
   const removeActionProperty = (array: Array<any>) => {
-    return array.map(({ action, ...rest }) => rest);
+    return array.map(({ action, isEnabled, ...rest }) => rest);
   };
 
   const removeTotalProperty = (array: Array<any>) => {
@@ -2211,6 +2402,12 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
     let updatedOrders = removeActionProperty(orders.updatedOrders);
     updatedOrders = removeTotalProperty(updatedOrders);
 
+    let newCakes = removeActionProperty(cakes.newCakes);
+    newCakes = removeTotalProperty(newCakes);
+
+    let updatedCakes = removeActionProperty(cakes.updatedCakes);
+    updatedCakes = removeTotalProperty(updatedCakes);
+
     let newExtras = removeActionProperty(extras.newExtras);
     newExtras = removeTotalProperty(newExtras);
 
@@ -2226,11 +2423,11 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
       const ordersToSend = {
         newOrders: newOrders,
         updatedOrders: updatedOrders,
-        deletedOrders: activities.deletedActivities
+        deletedOrders: orders.deletedOrders
       }
       const cakesToSend = {
-        newCakes: removeActionProperty(cakes.newCakes),
-        updatedCakes: removeActionProperty(cakes.updatedCakes),
+        newCakes: newCakes,
+        updatedCakes: updatedCakes,
         deletedCakes: cakes.deletedCakes
       }
       const extrasToSend = {
@@ -2655,7 +2852,6 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
               />
               <Textarea
                 label="Extra Note"
-                placeholder="Enter a description"
                 variant="underlined"
                 className="mt-4 md:max-w-72"
                 {...register('extraNote')}
@@ -2678,7 +2874,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
             </div>
           }
         />
-        {/* <Spacer y={2} />
+        <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
           title='Activity Information'
@@ -2705,7 +2901,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
           title='Extra Decorations and Themes Information' 
           description='Enter the event extras'
           form={<ExtraTable update={updateExtra} id={Number(params.id)}/>}
-        /> */}
+        />
         <div className="flex w-full justify-end gap-5 p-3 md:p-8">
           <Button
             type="button"

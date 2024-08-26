@@ -1,7 +1,7 @@
 'use client'
 import { Input } from '@nextui-org/input'
 import { Search, Hourglass, CheckCircle2 } from 'lucide-react'
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Chip } from '@nextui-org/chip'
 import {
   Button,
@@ -18,6 +18,9 @@ import { Event, EventStatus } from '@/api/models/Event.model'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { QueryClient, QueryFilters, useMutation } from '@tanstack/react-query'
+import { ServerError } from '@/api/utils'
+import { EventsApi } from '@/api/events.api'
 
 type EventInTable = {
   id: number
@@ -54,12 +57,66 @@ const columns = [
   }
 ]
 
+interface UpdateStatusFormData {
+  status: EventStatus,
+  id: number
+}
+
 const page = () => {
-  const [currentChip, setCurrentChip] = React.useState<string>(chips[0])
-  const [searchValue, setSearchValue] = React.useState<string>('')
-  const [filteredEvents, setFilteredEvents] = React.useState<EventInTable[]>([])
-  const {getEvent, editEvent, events} = useEvents()
+  const [currentChip, setCurrentChip] = useState<string>(chips[0])
+  const [searchValue, setSearchValue] = useState<string>('')
+  const [filteredEvents, setFilteredEvents] = useState<EventInTable[]>([])
+  const [eventsInTable, setEventsInTable] = useState<EventInTable[]>([])
+  const {getEvent, editEvent, events, isLoading} = useEvents()
+  const [localEvents, setLocalEvents] = useState<Event[]>([])
   const router = useRouter()
+  const queryClient = new QueryClient()
+
+  const { mutateAsync: editStatusMutation } = useMutation<Event, ServerError, UpdateStatusFormData>({
+    mutationFn: async (data) => {
+      const eventApi = new EventsApi()
+      const response = await eventApi.updateEventStatus(data.id, data.status);
+      return response.payload
+    },
+    onError: async (err) => {
+      toast.error(err.message);
+    },
+    onSuccess: async () => {
+      toast.success('Event Status Updated')
+    },
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({
+        queryKey: ['events']
+      })
+
+      const previousEvents = queryClient.getQueryData(['events']) as Event[]
+
+      queryClient.setQueriesData(['events'] as QueryFilters, () => {
+        previousEvents.map((event) => {
+          event.id === data.id ?
+          {
+            ...event,
+            status: data.status
+          } : event
+        })
+      })
+    }
+  })
+
+  useEffect(() => {
+    if (localEvents) {
+      const shapedEvents: EventInTable[] = localEvents.map((event) => ({
+        id: event.id || 0,
+        title: event.title,
+        start: event.startDate,
+        end: event.endDate,
+        status: event.status,
+        action: 'View',
+      }))
+      setFilteredEvents(filterEvents(shapedEvents, currentChip, searchValue))
+    }
+    
+  }, [localEvents])
 
   useEffect(() => {
     if (events) {
@@ -72,6 +129,7 @@ const page = () => {
         action: 'View',
       }))
       setFilteredEvents(filterEvents(shapedEvents, currentChip, searchValue))
+      setLocalEvents(events)
     }
   }, [events, currentChip, searchValue])
 
@@ -123,35 +181,13 @@ const page = () => {
   )
 
   const handleConfirmClick = async (event: EventInTable) => {
-    try {
-      console.log(event.id);
-      const eventData = await getEvent(event.id)
-      console.log(eventData);
+    await editStatusMutation({
+      status: EventStatus.Confirmed,
+      id: event.id
+    })
 
-      if (eventData) {
-        const updatedEvent = {
-          title: eventData.title,
-          category: eventData.category,
-          location: eventData.location,
-          status: EventStatus.Confirmed,
-          price: eventData.price,
-          extraKidPrice: eventData.extraKidPrice,
-          deposit: eventData.deposit,
-          description: eventData.description,
-          startDate: eventData.startDate,
-          endDate: eventData.endDate,
-          remaining: eventData.remaining,
-          ageGroup: eventData.ageGroup,
-          numberOfAttendees: eventData.numberOfAttendees,
-          extraNote: eventData.extraNote,
-        }
-        await editEvent(event.id, updatedEvent)
-      router.push('/events')
-      toast.success(`Event ${event.title} confirmed`)
-      }
-    } catch (error){
-      toast.error('Failed to confirm event')
-    }
+    setLocalEvents(prevEvents => prevEvents.map((e) =>
+      e.id === event.id ? {...e, status: EventStatus.Confirmed} : e))
   }
 
   const renderCell = React.useCallback((event: EventInTable, columnKey: ColumnKeys) => {
@@ -224,6 +260,10 @@ const page = () => {
       }))
       setFilteredEvents(filterEvents(shapedEvents, currentChip, value))
     }
+  }
+
+  if (isLoading) {
+    return <div>loading...</div>
   }
 
   return (
