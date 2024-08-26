@@ -1460,13 +1460,13 @@ const Page = ({ params }: Props) => {
         currentY += 10;
     };
 
-    const addTableHeader = (headers) => {
+    const addTableHeader = (headers: any) => {
         doc.setFontSize(subTitleFontSize);
         doc.setFillColor(230, 230, 250); // Light lavender background
         doc.setTextColor(0, 0, 0); // Black text color
         doc.rect(tableMarginX, currentY, tableWidth, lineHeight + 2, 'F'); // Fill with color
 
-        headers.forEach((header, index) => {
+        headers.forEach((header: any, index: any) => {
             const headerX = tableMarginX + index * (tableWidth / headers.length);
             doc.text(header, headerX + 5, currentY + lineHeight);
         });
@@ -1474,9 +1474,9 @@ const Page = ({ params }: Props) => {
         drawSectionDivider();
     };
 
-    const addTableRow = (columns) => {
+    const addTableRow = (columns: any) => {
         doc.setFontSize(textFontSize);
-        columns.forEach((column, index) => {
+        columns.forEach((column: any, index: any) => {
             const columnX = tableMarginX + index * (tableWidth / columns.length);
             doc.text(column, columnX + 5, currentY + lineHeight);
         });
@@ -1485,15 +1485,6 @@ const Page = ({ params }: Props) => {
 
     const addFooter = () => {
         const footerText = 'Thank you for choosing our service!';
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(textFontSize);
-            doc.text(footerText, marginX, doc.internal.pageSize.getHeight() - 20);
-
-            // Page numbering
-            doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.getWidth() - marginX, doc.internal.pageSize.getHeight() - 20, { align: 'right' });
-        }
     };
 
     if (event) {
