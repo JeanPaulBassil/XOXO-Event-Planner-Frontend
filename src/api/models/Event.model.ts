@@ -4,6 +4,17 @@ export enum EventCategory {
     BabyShower = 'BABYSHOWER',
     BirthdayParty = 'BIRTHDAYPARTY',
     Baptism = 'BAPTISM',
+    Playground = 'PLAYGROUND',
+    Events = 'EVENTS',
+    Birthday = 'BIRTHDAY',
+    Concert = 'CONCERT',
+    ArtExhibition = 'ART_EXHIBITION',
+    StageShows = 'STAGE_SHOWS',
+    GenderReveal = 'GENDER_REVEAL',
+    Communion = 'COMMUNION',
+    ArtisticParades = 'ARTISTIC_PARADES',
+    SummerCamper = 'SUMMER_CAMPER',
+    NurseriesVisit = 'NURSERIES_VISIT',
 }
 
 export enum EventLocation {

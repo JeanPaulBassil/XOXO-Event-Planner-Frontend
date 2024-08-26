@@ -329,7 +329,7 @@ const ActivityTable = (props: ActivityTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(4)
+  const [rowsPerPage, setRowsPerPage] = React.useState(17)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -559,49 +559,11 @@ const ActivityTable = (props: ActivityTableProps) => {
             onValueChange={onSearchChange}
             startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
           />
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  radius="sm"
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                >
-                  Columns
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {toCapitalCase(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
             Total {activitiesInTable?.length} activities
           </span>
-          {/* <label className="flex items-center text-small text-default-400">
-            Rows per page:
-            <select
-              className="bg-transparent rounded-md text-small text-default-400 outline-none"
-              onChange={onRowsPerPageChange}
-            >
-              <option value="5">2</option>
-              <option value="10">10</option>
-              <option value="15">15</option>
-            </select>
-          </label> */}
         </div>
       </div>
     )
@@ -645,7 +607,7 @@ const ActivityTable = (props: ActivityTableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
@@ -691,7 +653,7 @@ const OrderTable = (props: orderTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(3)
+  const [rowsPerPage, setRowsPerPage] = React.useState(44)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -992,33 +954,6 @@ const OrderTable = (props: orderTableProps) => {
             onValueChange={onSearchChange}
             startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
           />
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  radius="sm"
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                >
-                  Columns
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {toCapitalCase(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
@@ -1078,7 +1013,7 @@ const OrderTable = (props: orderTableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
@@ -1410,33 +1345,6 @@ const CakeTable = (props: cakeTableProps) => {
             onValueChange={onSearchChange}
             startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
           />
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  radius="sm"
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                >
-                  Columns
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {toCapitalCase(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
@@ -1496,7 +1404,7 @@ const CakeTable = (props: cakeTableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
@@ -1541,7 +1449,7 @@ const ExtraTable = (props: extraTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(4)
+  const [rowsPerPage, setRowsPerPage] = React.useState(11)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -1802,33 +1710,6 @@ const ExtraTable = (props: extraTableProps) => {
             onValueChange={onSearchChange}
             startContent={<Search className="text-secondary-400" size={18} strokeWidth={1} />}
           />
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  radius="sm"
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                >
-                  Columns
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {toCapitalCase(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-          </div>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">
@@ -1888,7 +1769,7 @@ const ExtraTable = (props: extraTableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
@@ -2211,15 +2092,11 @@ export default function CreateEventPage() {
                       },
                     }}
                   >
-                    <AutocompleteItem key="BABYSHOWER" value="Baby Shower">
-                      Baby Shower
-                    </AutocompleteItem>
-                    <AutocompleteItem key="BIRTHDAYPARTY" value="Birthday Party">
-                      Birthday Party
-                    </AutocompleteItem>
-                    <AutocompleteItem key="BAPTISM" value="Baptism">
-                      Baptism
-                    </AutocompleteItem>
+                    {Object.values(EventCategory).map((category) => (
+                      <AutocompleteItem key={category} value={category}>
+                        {toCapitalCase(category).replace('_', ' ')}
+                      </AutocompleteItem>
+                    ))}
                   </Autocomplete>
                 )}
               />

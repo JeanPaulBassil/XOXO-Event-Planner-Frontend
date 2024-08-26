@@ -836,7 +836,7 @@ const OrderTable = (props: orderTableProps) => {
 
   const [filterValue, setFilterValue] = useState('');
   const [visibleColumns, setVisibleColumns] = useState<Selection>(new Set(INITIAL_ORDERS_VISIBLE_COLUMNS));
-  const [rowsPerPage, setRowsPerPage] = useState(3);
+  const [rowsPerPage, setRowsPerPage] = useState(44);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
