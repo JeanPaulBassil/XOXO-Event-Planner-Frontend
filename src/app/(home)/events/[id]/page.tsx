@@ -54,6 +54,7 @@ import { CakesApi } from '@/api/cake.api'
 import { Cake, CakeDescription } from '@/api/models/Cake.model'
 import { ExtrasApi } from '@/api/extra.api'
 import { Extra, ExtraType } from '@/api/models/Extra.model'
+import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 const INITIAL_VISIBLE_COLUMNS = ['description', 'price']
 
@@ -133,11 +134,20 @@ export interface CakeInTable {
   total?: number
 }
 
-  export type ExtraInTable = {
+export type ExtraInTable = {
   description: ExtraType
   unitPrice: number
   quantity: number
   total?: number
+}
+
+export type PdfProps = {
+  event: Event | undefined
+  activitiesInTable: ActivityInTable[]
+  ordersInTable: OrderInTable[]
+  cakesInTable: CakeInTable[]
+  extrasInTable: ExtraInTable[]
+  total: number
 }
 
 const ActivityTable = (props: TableProps) => {
@@ -1348,7 +1358,261 @@ const ExtraTable = (props: TableProps) => {
   )
 }
 
-const Page = ({ params }: Props) => {
+const styles = StyleSheet.create({
+  page: {
+    padding: 30,
+    backgroundColor: '#f7f7f7', // Soft light gray for a cleaner look
+  },
+  section: {
+    marginBottom: 25,
+  },
+  title: {
+    fontSize: 30, // Larger font for section titles
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#2C3E50', // Darker navy color for better contrast
+  },
+  detail: {
+    fontSize: 16,
+    flexDirection: 'row',
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  label: {
+    fontWeight: 600, // Slightly bolder text
+    width: 130, // Increased width for better alignment
+    color: '#7F8C8D', // Medium gray for labels
+  },
+  value: {
+    flex: 1,
+    color: '#34495E', // Darker blue-gray for better readability
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#ECF0F1', // Light gray background for headers
+    padding: 10,
+    marginBottom: 6,
+    borderRadius: 6, // Slightly more rounded corners
+    borderBottomWidth: 2, // Slightly thicker bottom border
+    borderBottomColor: '#BDC3C7', // Subtle border color
+  },
+  tableRow: {
+    flexDirection: 'row',
+    padding: 10,
+    marginBottom: 6,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF', // White background for a clean look
+    borderColor: '#D5DBDB', // Light gray border for rows
+    borderWidth: 1,
+    shadowColor: '#000', // Adding a subtle shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  tableCell: {
+    flex: 1,
+    fontSize: 14,
+    color: '#2C3E50', // Consistent text color
+    paddingRight: 5, // Added padding for spacing
+  },
+  footer: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 30, // Increased margin for spacing
+    color: '#95A5A6', // Soft gray for the footer
+    borderTopWidth: 1, // Border at the top of the footer
+    borderTopColor: '#D5DBDB', // Light gray border
+    paddingTop: 10, // Padding to separate from the content
+  },
+});
+
+
+
+// Function to create a PDF document
+const EventPDF = (props: PdfProps) => (
+  <Document>
+    <Page size="A4" style={styles.page}>
+      <View style={styles.section}>
+        <Text style={styles.title}>{props.event && props.event.title}</Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Location: </Text>
+          <Text style={styles.value}>{props.event && props.event.location}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Status: </Text>
+          <Text style={styles.value}>{props.event &&  props.event.status}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Client Full Name: </Text>
+          <Text style={styles.value}>{props.event?.client?.name}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Phone Number: </Text>
+          <Text style={styles.value}>{props.event?.client?.phone}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Email: </Text>
+          <Text style={styles.value}>{props.event?.client?.email}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Address: </Text>
+          <Text style={styles.value}>{props.event?.client?.address}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>School: </Text>
+          <Text style={styles.value}>{props.event?.client?.school}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Date of Birthday: </Text>
+          <Text style={styles.value}>{props.event?.client?.birthdate}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Total Invitees: </Text>
+          <Text style={styles.value}>{props.event?.numberOfAttendees}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Extra Kid will be charged the amount of: </Text>
+          <Text style={styles.value}>{props.event?.extraKidPrice}</Text>
+        </Text>
+      </View>
+    </Page>
+    <Page size="A4" style={styles.page}>
+    <View style={styles.section}>
+        <Text style={styles.title}>Event Information</Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Category: </Text>
+          <Text style={styles.value}>{props.event && props.event.category}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Event Amount: </Text>
+          <Text style={styles.value}>${props.event && props.event.price}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Extra Kid Charge: </Text>
+          <Text style={styles.value}>${props.event && props.event.extraKidPrice}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Minimum Charge: </Text>
+          <Text style={styles.value}>${props.event && props.event.minimumCharge}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Deposit: </Text>
+          <Text style={styles.value}>${props.event && props.event.deposit}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Paid Amount: </Text>
+          <Text style={styles.value}>${props.event && props.event.paidAmount}</Text>
+        </Text>
+        <Text style={styles.detail}>
+          <Text style={styles.label}>Remaining: </Text>
+          <Text style={styles.value}>${props.event && props.event.remaining}</Text>
+        </Text>
+      </View>
+    </Page>
+    <Page size="A4" style={styles.page}>
+    <View style={styles.section}>
+        <Text style={styles.title}>Activities</Text>
+        <View style={styles.tableHeader}>
+          <Text style={styles.tableCell}>Description</Text>
+          <Text style={styles.tableCell}>Price</Text>
+        </View>
+        {props.activitiesInTable.map((activity, index) => (
+          <View key={index} style={styles.tableRow}>
+            <Text style={styles.tableCell}>{activity.description}</Text>
+            <Text style={styles.tableCell}>${activity.price}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.title}>Orders</Text>
+        <View style={styles.tableHeader}>
+          <Text style={styles.tableCell}>Description</Text>
+          <Text style={styles.tableCell}>Unit Price</Text>
+          <Text style={styles.tableCell}>Quantity</Text>
+          <Text style={styles.tableCell}>Total</Text>
+        </View>
+        {props.ordersInTable.map((order, index) => (
+          <View key={index} style={styles.tableRow}>
+            <Text style={styles.tableCell}>{order.description}</Text>
+            <Text style={styles.tableCell}>${order.unitPrice}</Text>
+            <Text style={styles.tableCell}>{order.quantity}</Text>
+            <Text style={styles.tableCell}>${order.total}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.title}>Cakes</Text>
+        <View style={styles.tableHeader}>
+          <Text style={styles.tableCell}>Type</Text>
+          <Text style={styles.tableCell}>Description</Text>
+          <Text style={styles.tableCell}>Unit Price</Text>
+          <Text style={styles.tableCell}>Quantity</Text>
+          <Text style={styles.tableCell}>Total</Text>
+        </View>
+        {props.cakesInTable.map((cake, index) => (
+          <View key={index} style={styles.tableRow}>
+            <Text style={styles.tableCell}>{cake.type}</Text>
+            <Text style={styles.tableCell}>{cake.description}</Text>
+            <Text style={styles.tableCell}>${cake.unitPrice}</Text>
+            <Text style={styles.tableCell}>{cake.quantity}</Text>
+            <Text style={styles.tableCell}>${cake.total}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.title}>Extras</Text>
+        <View style={styles.tableHeader}>
+          <Text style={styles.tableCell}>Description</Text>
+          <Text style={styles.tableCell}>Quantity</Text>
+          <Text style={styles.tableCell}>Unit Price</Text>
+          <Text style={styles.tableCell}>Total</Text>
+        </View>
+        {props.extrasInTable.map((extra, index) => (
+          <View key={index} style={styles.tableRow}>
+            <Text style={styles.tableCell}>{extra.description}</Text>
+            <Text style={styles.tableCell}>{extra.quantity}</Text>
+            <Text style={styles.tableCell}>${extra.unitPrice}</Text>
+            <Text style={styles.tableCell}>${extra.total}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.title}>Grand Total</Text>
+        <Text style={styles.detail}>
+          <Text style={styles.value}>${(props.total).toFixed(2)}</Text>
+        </Text>
+      </View>
+
+      <Text style={styles.footer}>Thank you for choosing our service!</Text>
+    </Page>
+  </Document>
+);
+
+const MyPDFButton = (props: PdfProps) => (
+  <PDFDownloadLink
+    document={
+      <EventPDF
+        event={props.event}
+        activitiesInTable={props.activitiesInTable}
+        ordersInTable={props.ordersInTable}
+        cakesInTable={props.cakesInTable}
+        extrasInTable={props.extrasInTable}
+        total={props.total}
+      />
+    }
+    fileName="event-details.pdf"
+    className="flex items-center gap-2 rounded-md bg-light-100 p-3"
+  >
+    <p className="hidden font-semibold lg:block">Print Event Details</p>
+    <PrinterIcon size={20} />
+  </PDFDownloadLink>
+);
+
+const ViewPage = ({ params }: Props) => {
   const { getEvent, editEvent } = useEvents()
   const [event, setEvent] = useState<Event | undefined>(undefined)
   const [price, setPrice] = useState<number>(0)
@@ -1387,218 +1651,6 @@ const Page = ({ params }: Props) => {
 
     fetchEvent()
   }, [params.id, getEvent])
-
-  const printPDF = () => {
-    const doc = new jsPDF()
-    const titleFontSize = 22
-    const subTitleFontSize = 16
-    const textFontSize = 12
-    const lineHeight = 8
-    const marginX = 25
-    const tableMarginX = 15
-    const tableWidth = 180
-    let currentY = 30
-
-    const drawSectionDivider = () => {
-      currentY += 5
-      doc.setLineWidth(0.75)
-      doc.setDrawColor(150, 150, 150) // Gray color
-      doc.line(marginX, currentY, doc.internal.pageSize.getWidth() - marginX, currentY)
-      currentY += 10
-    }
-
-    const addTableHeader = (headers: any) => {
-      doc.setFontSize(subTitleFontSize)
-      doc.setFillColor(230, 230, 250) // Light lavender background
-      doc.setTextColor(0, 0, 0) // Black text color
-      doc.rect(tableMarginX, currentY, tableWidth, lineHeight + 2, 'F') // Fill with color
-
-      headers.forEach((header: any, index: any) => {
-        const headerX = tableMarginX + index * (tableWidth / headers.length)
-        doc.text(header, headerX + 5, currentY + lineHeight)
-      })
-      currentY += lineHeight + 2
-      drawSectionDivider()
-    }
-
-    const addTableRow = (columns: any) => {
-      doc.setFontSize(textFontSize)
-      columns.forEach((column: any, index: any) => {
-        const columnX = tableMarginX + index * (tableWidth / columns.length)
-        doc.text(column, columnX + 5, currentY + lineHeight)
-      })
-      currentY += lineHeight + 2
-    }
-
-    const addFooter = () => {
-      const footerText = 'Thank you for choosing our service!'
-    }
-
-    if (event) {
-      // Add logo at the top
-      // const logo = new Image();
-      // logo.src = 'path/to/logo.png'; // Update this with the correct path to your logo
-      // doc.addImage(logo, 'PNG', marginX, 10, 50, 15);
-
-      // Title and Event Date on the first page
-      currentY += 20
-      doc.setFont('Helvetica', 'bold')
-      doc.setFontSize(titleFontSize)
-      doc.text(`Event Details: ${event.title}`, marginX, currentY)
-      currentY += lineHeight + 5
-
-      doc.setFont('Helvetica', 'normal')
-      doc.setFontSize(textFontSize)
-      doc.text(date, marginX, currentY)
-      currentY += lineHeight + 10
-
-      // Event Info on the first page with a box around it
-      doc.setFontSize(subTitleFontSize)
-      doc.setFillColor(230, 230, 250) // Light lavender background
-      doc.rect(marginX - 5, currentY - 5, 170, lineHeight * 9 + 15, 'F')
-
-      currentY += 5
-
-      doc.text('Event Information', marginX, currentY)
-      currentY += lineHeight
-
-      doc.setFontSize(textFontSize)
-      doc.text(`Category: ${category()}`, marginX, currentY)
-      currentY += lineHeight
-      doc.text(`Location: ${location()}`, marginX, currentY)
-      currentY += lineHeight
-      doc.text(`Event Amount: $${event.price}`, marginX, currentY)
-      currentY += lineHeight
-      doc.text(`Extra Kid Charge: $${event.extraKidPrice}`, marginX, currentY)
-      currentY += lineHeight
-      doc.text(`Minimum Charge: $${event.minimumCharge}`, marginX, currentY)
-      currentY += lineHeight
-      doc.text(`Deposit: $${event.deposit}`, marginX, currentY)
-      currentY += lineHeight
-      doc.text(`Paid Amount: $${event.paidAmount}`, marginX, currentY)
-      currentY += lineHeight
-      doc.text(`Remaining: $${event.remaining}`, marginX, currentY)
-      currentY += lineHeight + 10
-
-      // Move to the second page for tables
-      doc.addPage()
-      currentY = 30
-
-      // Activities Table
-      if (activitiesInTable.length > 0) {
-        doc.setFontSize(subTitleFontSize)
-        doc.text('Activities', marginX, currentY)
-        currentY += lineHeight
-
-        addTableHeader(['Description', 'Price'])
-
-        activitiesInTable.forEach((activity) => {
-          addTableRow([activity.description, `$${activity.price}`])
-        })
-
-        currentY += lineHeight + 10
-      }
-
-      // Orders Table
-      if (ordersInTable.length > 0) {
-        doc.setFontSize(subTitleFontSize)
-        doc.text('Orders', marginX, currentY)
-        currentY += lineHeight
-
-        addTableHeader(['Description', 'Unit Price', 'Quantity', 'Total'])
-
-        ordersInTable.forEach((order) => {
-          addTableRow([
-            order.description,
-            `$${order.unitPrice}`,
-            `${order.quantity}`,
-            `$${order.total}`,
-          ])
-        })
-
-        currentY += lineHeight + 10
-      }
-
-      // Cakes Table
-      if (cakesInTable.length > 0) {
-        doc.setFontSize(subTitleFontSize)
-        doc.text('Cakes', marginX, currentY)
-        currentY += lineHeight
-
-        addTableHeader(['Type', 'Description', 'Unit Price', 'Quantity', 'Total'])
-
-        cakesInTable.forEach((cake) => {
-          addTableRow([
-            cake.type,
-            cake.description,
-            `$${cake.unitPrice}`,
-            `${cake.quantity}`,
-            `$${cake.total}`,
-          ])
-        })
-
-        currentY += lineHeight + 10
-      }
-
-      // Extras Table
-      if (extrasInTable.length > 0) {
-        doc.setFontSize(subTitleFontSize)
-        doc.text('Extra Decorations and Themes', marginX, currentY)
-        currentY += lineHeight
-
-        addTableHeader(['Description', 'Quantity', 'Unit Price', 'Total'])
-
-        extrasInTable.forEach((extra) => {
-          addTableRow([
-            extra.description,
-            `${extra.quantity}`,
-            `$${extra.unitPrice}`,
-            `$${extra.total}`,
-          ])
-        })
-
-        currentY += lineHeight + 10
-      }
-
-      // Grand Total on second page
-      const grandTotal = (
-        activityTotal +
-        Number((orderTotal * 1.11).toFixed(2)) +
-        cakeTotal +
-        extraTotal +
-        event.extraKidPrice +
-        event.minimumCharge +
-        event.price -
-        event.paidAmount
-      ).toFixed(2)
-
-      doc.setFontSize(titleFontSize)
-      doc.setFont('Helvetica', 'bold')
-      doc.text('Grand Total', marginX, currentY)
-      currentY += lineHeight
-      doc.setFontSize(textFontSize)
-      doc.setFont('Helvetica', 'normal')
-      doc.text(`$${grandTotal}`, doc.internal.pageSize.getWidth() - marginX, currentY, {
-        align: 'right',
-      })
-      currentY += lineHeight + 10
-
-      // Add footer with page number and thank you note
-      addFooter()
-
-      // Open the PDF in a new window
-      const pdfData = doc.output('blob')
-      const pdfUrl = URL.createObjectURL(pdfData)
-      const newWindow = window.open(pdfUrl)
-
-      // Trigger the print dialog
-      if (newWindow) {
-        newWindow.onload = () => {
-          newWindow.print()
-        }
-      }
-    }
-  }
 
   const updateActivity = (total: number, activities: ActivityInTable[]) => {
     setActivityTotal(total)
@@ -1817,13 +1869,13 @@ const Page = ({ params }: Props) => {
             <p className="hidden font-semibold lg:block">Add Payment</p>
             <Coins size={20} />
           </button>
-          <button
-            className="flex items-center gap-2 rounded-md bg-light-100 p-3"
-            onClick={printPDF}
-          >
-            <p className="hidden font-semibold lg:block">Print Event Details</p>
-            <PrinterIcon size={20} />
-          </button>
+          <MyPDFButton event={event} activitiesInTable={activitiesInTable} ordersInTable={ordersInTable} cakesInTable={cakesInTable} extrasInTable={extrasInTable} total={activityTotal +
+                Number((orderTotal * 1.11).toFixed(2)) +
+                cakeTotal +
+                extraTotal +
+                extraKidPrice +
+                price -
+                paidAmount}/>
         </div>
       </div>
       <div className="pt-4">
@@ -2045,7 +2097,6 @@ const Page = ({ params }: Props) => {
                 cakeTotal +
                 extraTotal +
                 extraKidPrice +
-                minimumCharge +
                 price -
                 paidAmount}
             </p>
@@ -2060,4 +2111,4 @@ const Page = ({ params }: Props) => {
   )
 }
 
-export default Page
+export default ViewPage
