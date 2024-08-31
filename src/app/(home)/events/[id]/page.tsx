@@ -1361,16 +1361,22 @@ const ExtraTable = (props: TableProps) => {
 const styles = StyleSheet.create({
   page: {
     padding: 30,
-    backgroundColor: '#f7f7f7', // Soft light gray for a cleaner look
+    backgroundColor: '#f7f7f7',
   },
   section: {
     marginBottom: 25,
   },
   title: {
-    fontSize: 30, // Larger font for section titles
+    fontSize: 30,
     fontWeight: 'bold',
     marginBottom: 15,
-    color: '#2C3E50', // Darker navy color for better contrast
+    color: '#2C3E50',
+  },
+  subtitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: '#34495E',
   },
   detail: {
     fontSize: 16,
@@ -1379,139 +1385,116 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    fontWeight: 600, // Slightly bolder text
-    width: 130, // Increased width for better alignment
-    color: '#7F8C8D', // Medium gray for labels
+    fontWeight: 600,
+    width: 130,
+    color: '#7F8C8D',
   },
   value: {
     flex: 1,
-    color: '#34495E', // Darker blue-gray for better readability
+    color: '#34495E',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#ECF0F1', // Light gray background for headers
+    backgroundColor: '#ECF0F1',
     padding: 10,
     marginBottom: 6,
-    borderRadius: 6, // Slightly more rounded corners
-    borderBottomWidth: 2, // Slightly thicker bottom border
-    borderBottomColor: '#BDC3C7', // Subtle border color
+    borderRadius: 6,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#34495E',
   },
   tableRow: {
     flexDirection: 'row',
     padding: 10,
     marginBottom: 6,
     borderRadius: 6,
-    backgroundColor: '#FFFFFF', // White background for a clean look
-    borderColor: '#D5DBDB', // Light gray border for rows
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D5DBDB',
     borderWidth: 1,
-    shadowColor: '#000', // Adding a subtle shadow
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   tableCell: {
     flex: 1,
-    fontSize: 14,
-    color: '#2C3E50', // Consistent text color
-    paddingRight: 5, // Added padding for spacing
+    color: '#2C3E50',
+    paddingRight: 5,
+    textAlign: 'center',
   },
   footer: {
     fontSize: 14,
     textAlign: 'center',
-    marginTop: 30, // Increased margin for spacing
-    color: '#95A5A6', // Soft gray for the footer
-    borderTopWidth: 1, // Border at the top of the footer
-    borderTopColor: '#D5DBDB', // Light gray border
-    paddingTop: 10, // Padding to separate from the content
+    marginTop: 30,
+    color: '#95A5A6',
+    borderTopWidth: 1,
+    borderTopColor: '#D5DBDB',
+    paddingTop: 10,
   },
 });
 
-
-
-// Function to create a PDF document
 const EventPDF = (props: PdfProps) => (
   <Document>
+    {/* First Page - Event Details */}
     <Page size="A4" style={styles.page}>
       <View style={styles.section}>
         <Text style={styles.title}>{props.event && props.event.title}</Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Location: </Text>
-          <Text style={styles.value}>{props.event && props.event.location}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Status: </Text>
-          <Text style={styles.value}>{props.event &&  props.event.status}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Client Full Name: </Text>
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Client:</Text>
           <Text style={styles.value}>{props.event?.client?.name}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Phone Number: </Text>
+        </View>
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Phone:</Text>
           <Text style={styles.value}>{props.event?.client?.phone}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Email: </Text>
+        </View>
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Email:</Text>
           <Text style={styles.value}>{props.event?.client?.email}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Address: </Text>
-          <Text style={styles.value}>{props.event?.client?.address}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>School: </Text>
-          <Text style={styles.value}>{props.event?.client?.school}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Date of Birthday: </Text>
-          <Text style={styles.value}>{props.event?.client?.birthdate}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Total Invitees: </Text>
-          <Text style={styles.value}>{props.event?.numberOfAttendees}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Extra Kid will be charged the amount of: </Text>
-          <Text style={styles.value}>{props.event?.extraKidPrice}</Text>
-        </Text>
+        </View>
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Location:</Text>
+          <Text style={styles.value}>{props.event?.location}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Category:</Text>
+          <Text style={styles.value}>{props.event?.category}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Dates:</Text>
+          <Text style={styles.value}>
+            {props.event?.startDate} - {props.event?.endDate}
+          </Text>
+        </View>
       </View>
     </Page>
+
+    {/* Second Page - Financial Summary */}
     <Page size="A4" style={styles.page}>
-    <View style={styles.section}>
-        <Text style={styles.title}>Event Information</Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Category: </Text>
-          <Text style={styles.value}>{props.event && props.event.category}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Event Amount: </Text>
-          <Text style={styles.value}>${props.event && props.event.price}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Extra Kid Charge: </Text>
-          <Text style={styles.value}>${props.event && props.event.extraKidPrice}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Minimum Charge: </Text>
-          <Text style={styles.value}>${props.event && props.event.minimumCharge}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Deposit: </Text>
-          <Text style={styles.value}>${props.event && props.event.deposit}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Paid Amount: </Text>
-          <Text style={styles.value}>${props.event && props.event.paidAmount}</Text>
-        </Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Remaining: </Text>
-          <Text style={styles.value}>${props.event && props.event.remaining}</Text>
-        </Text>
+      <View style={styles.section}>
+        <Text style={styles.subtitle}>Financial Summary</Text>
+        <View style={styles.detail}>
+          <Text style={styles.label}>Event Price:</Text>
+          <Text style={styles.value}>${props.event?.price}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.label}>Extra Kid Charge:</Text>
+          <Text style={styles.value}>${props.event?.extraKidPrice}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.label}>Deposit:</Text>
+          <Text style={styles.value}>${props.event?.deposit}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.label}>Paid Amount:</Text>
+          <Text style={styles.value}>${props.event?.paidAmount}</Text>
+        </View>
+        <View style={styles.detail}>
+          <Text style={styles.label}>Remaining:</Text>
+          <Text style={styles.value}>${props.event?.remaining}</Text>
+        </View>
       </View>
     </Page>
+
+    {/* Third Page - Activities Table */}
     <Page size="A4" style={styles.page}>
-    <View style={styles.section}>
-        <Text style={styles.title}>Activities</Text>
+      <View style={styles.section}>
+        <Text style={styles.subtitle}>Activities</Text>
         <View style={styles.tableHeader}>
           <Text style={styles.tableCell}>Description</Text>
           <Text style={styles.tableCell}>Price</Text>
@@ -1523,9 +1506,12 @@ const EventPDF = (props: PdfProps) => (
           </View>
         ))}
       </View>
+    </Page>
 
+    {/* Fourth Page - Orders Table */}
+    <Page size="A4" style={styles.page}>
       <View style={styles.section}>
-        <Text style={styles.title}>Orders</Text>
+        <Text style={styles.subtitle}>Orders</Text>
         <View style={styles.tableHeader}>
           <Text style={styles.tableCell}>Description</Text>
           <Text style={styles.tableCell}>Unit Price</Text>
@@ -1541,9 +1527,12 @@ const EventPDF = (props: PdfProps) => (
           </View>
         ))}
       </View>
+    </Page>
 
+    {/* Fifth Page - Cakes and Extras */}
+    <Page size="A4" style={styles.page}>
       <View style={styles.section}>
-        <Text style={styles.title}>Cakes</Text>
+        <Text style={styles.subtitle}>Cakes</Text>
         <View style={styles.tableHeader}>
           <Text style={styles.tableCell}>Type</Text>
           <Text style={styles.tableCell}>Description</Text>
@@ -1563,7 +1552,7 @@ const EventPDF = (props: PdfProps) => (
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.title}>Extras</Text>
+        <Text style={styles.subtitle}>Extras</Text>
         <View style={styles.tableHeader}>
           <Text style={styles.tableCell}>Description</Text>
           <Text style={styles.tableCell}>Quantity</Text>
@@ -1579,18 +1568,22 @@ const EventPDF = (props: PdfProps) => (
           </View>
         ))}
       </View>
+    </Page>
 
+    {/* Final Page - Grand Total */}
+    <Page size="A4" style={styles.page}>
       <View style={styles.section}>
-        <Text style={styles.title}>Grand Total</Text>
+        <Text style={styles.subtitle}>Grand Total</Text>
         <Text style={styles.detail}>
-          <Text style={styles.value}>${(props.total).toFixed(2)}</Text>
+          <Text style={styles.label}>Total:</Text>
+          <Text style={styles.value}>${props.total.toFixed(2)}</Text>
         </Text>
       </View>
-
       <Text style={styles.footer}>Thank you for choosing our service!</Text>
     </Page>
   </Document>
 );
+
 
 const MyPDFButton = (props: PdfProps) => (
   <PDFDownloadLink
