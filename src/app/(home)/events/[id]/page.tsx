@@ -147,7 +147,14 @@ export type PdfProps = {
   ordersInTable: OrderInTable[]
   cakesInTable: CakeInTable[]
   extrasInTable: ExtraInTable[]
-  total: number
+  total: {
+    activityTotal: number
+    orderTotal: number
+    cakeTotal: number
+    extraTotal: number
+    eventTotal: number
+    paidAmount: number
+  }
 }
 
 const ActivityTable = (props: TableProps) => {
@@ -1371,6 +1378,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     color: '#2C3E50',
+    textAlign: 'center'
   },
   subtitle: {
     fontSize: 20,
@@ -1429,14 +1437,26 @@ const styles = StyleSheet.create({
   },
 });
 
-const EventPDF = (props: PdfProps) => (
+const EventPDF = (props: PdfProps) => {
+
+  const convertString = (input: string): string => {
+    if (input.length === 0) return input; // Handle empty string
+
+    const firstChar = input[0]; // Keep the first character as is
+    const restOfString = input.slice(1).toLowerCase().replace(/_/g, ' '); // Convert the rest to lowercase and replace underscores
+
+    return firstChar + restOfString;
+}
+
+  return props.event ? (
   <Document>
     {/* First Page - Event Details */}
     <Page size="A4" style={styles.page}>
+      <Text style={styles.title}>{props.event && props.event.title}</Text>
       <View style={styles.section}>
-        <Text style={styles.title}>{props.event && props.event.title}</Text>
+        <Text style={styles.subtitle}>Client Information</Text>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Text style={styles.label}>Client:</Text>
+          <Text style={styles.label}>Client Name:</Text>
           <Text style={styles.value}>{props.event?.client?.name}</Text>
         </View>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
@@ -1449,23 +1469,19 @@ const EventPDF = (props: PdfProps) => (
         </View>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           <Text style={styles.label}>Location:</Text>
-          <Text style={styles.value}>{props.event?.location}</Text>
+          <Text style={styles.value}>{convertString(props.event?.location)}</Text>
         </View>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           <Text style={styles.label}>Category:</Text>
-          <Text style={styles.value}>{props.event?.category}</Text>
+          <Text style={styles.value}>{convertString(props.event?.category)}</Text>
         </View>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           <Text style={styles.label}>Dates:</Text>
           <Text style={styles.value}>
-            {props.event?.startDate} - {props.event?.endDate}
+            {zonedFormatDate(props.event?.startDate)} - {zonedFormatDate(props.event?.endDate)}
           </Text>
         </View>
       </View>
-    </Page>
-
-    {/* Second Page - Financial Summary */}
-    <Page size="A4" style={styles.page}>
       <View style={styles.section}>
         <Text style={styles.subtitle}>Financial Summary</Text>
         <View style={styles.detail}>
@@ -1501,7 +1517,7 @@ const EventPDF = (props: PdfProps) => (
         </View>
         {props.activitiesInTable.map((activity, index) => (
           <View key={index} style={styles.tableRow}>
-            <Text style={styles.tableCell}>{activity.description}</Text>
+            <Text style={styles.tableCell}>{convertString(activity.description)}</Text>
             <Text style={styles.tableCell}>${activity.price}</Text>
           </View>
         ))}
@@ -1520,7 +1536,7 @@ const EventPDF = (props: PdfProps) => (
         </View>
         {props.ordersInTable.map((order, index) => (
           <View key={index} style={styles.tableRow}>
-            <Text style={styles.tableCell}>{order.description}</Text>
+            <Text style={styles.tableCell}>{convertString(order.description)}</Text>
             <Text style={styles.tableCell}>${order.unitPrice}</Text>
             <Text style={styles.tableCell}>{order.quantity}</Text>
             <Text style={styles.tableCell}>${order.total}</Text>
@@ -1543,15 +1559,17 @@ const EventPDF = (props: PdfProps) => (
         {props.cakesInTable.map((cake, index) => (
           <View key={index} style={styles.tableRow}>
             <Text style={styles.tableCell}>{cake.type}</Text>
-            <Text style={styles.tableCell}>{cake.description}</Text>
+            <Text style={styles.tableCell}>{convertString(cake.description)}</Text>
             <Text style={styles.tableCell}>${cake.unitPrice}</Text>
             <Text style={styles.tableCell}>{cake.quantity}</Text>
             <Text style={styles.tableCell}>${cake.total}</Text>
           </View>
         ))}
       </View>
+    </Page>
 
-      <View style={styles.section}>
+    <Page size="A4" style={styles.page}>
+    <View style={styles.section}>
         <Text style={styles.subtitle}>Extras</Text>
         <View style={styles.tableHeader}>
           <Text style={styles.tableCell}>Description</Text>
@@ -1561,7 +1579,7 @@ const EventPDF = (props: PdfProps) => (
         </View>
         {props.extrasInTable.map((extra, index) => (
           <View key={index} style={styles.tableRow}>
-            <Text style={styles.tableCell}>{extra.description}</Text>
+            <Text style={styles.tableCell}>{convertString(extra.description)}</Text>
             <Text style={styles.tableCell}>{extra.quantity}</Text>
             <Text style={styles.tableCell}>${extra.unitPrice}</Text>
             <Text style={styles.tableCell}>${extra.total}</Text>
@@ -1572,17 +1590,76 @@ const EventPDF = (props: PdfProps) => (
 
     {/* Final Page - Grand Total */}
     <Page size="A4" style={styles.page}>
+      {/* Title */}
+      <Text style={styles.subtitle}>Grand Total</Text>
+
       <View style={styles.section}>
-        <Text style={styles.subtitle}>Grand Total</Text>
-        <Text style={styles.detail}>
-          <Text style={styles.label}>Total:</Text>
-          <Text style={styles.value}>${props.total.toFixed(2)}</Text>
-        </Text>
+        {/* Activity Total */}
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Activities Total Price</Text>
+          <Text style={styles.value}>
+            {props.total.activityTotal}
+          </Text>
+        </View>
+
+        {/* Orders Total */}
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Orders Total Price</Text>
+          <Text style={styles.value}>
+            {props.total.orderTotal}
+          </Text>
+        </View>
+
+        {/* Cakes Total */}
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Cakes Total Price</Text>
+          <Text style={styles.value}>
+            {props.total.cakeTotal}
+          </Text>
+        </View>
+
+        {/* Decorations and Themes Total */}
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Decorations and Themes Total Price</Text>
+          <Text style={styles.value}>
+            {props.total.extraTotal}
+          </Text>
+        </View>
+
+        {/* Event Amount */}
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Event Amount</Text>
+          <Text style={styles.value}>
+            {props.total.eventTotal}
+          </Text>
+        </View>
+
+        {/* Paid Amount */}
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Paid Amount</Text>
+          <Text style={styles.value}>
+            {props.total.paidAmount}
+          </Text>
+        </View>
+
+        {/* Grand Total */}
+        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.label}>Grand Total</Text>
+          <Text style={styles.value}>
+            {
+                props.total.activityTotal +
+                Number((props.total.orderTotal * 1.11).toFixed(2)) +
+                props.total.cakeTotal +
+                props.total.extraTotal +
+                props.total.eventTotal -
+                props.total.paidAmount
+              }
+          </Text>
+        </View>
       </View>
-      <Text style={styles.footer}>Thank you for choosing our service!</Text>
     </Page>
   </Document>
-);
+) : (<Text>Failed to load</Text>)};
 
 
 const MyPDFButton = (props: PdfProps) => (
@@ -1862,13 +1939,13 @@ const ViewPage = ({ params }: Props) => {
             <p className="hidden font-semibold lg:block">Add Payment</p>
             <Coins size={20} />
           </button>
-          <MyPDFButton event={event} activitiesInTable={activitiesInTable} ordersInTable={ordersInTable} cakesInTable={cakesInTable} extrasInTable={extrasInTable} total={activityTotal +
-                Number((orderTotal * 1.11).toFixed(2)) +
-                cakeTotal +
-                extraTotal +
-                extraKidPrice +
-                price -
-                paidAmount}/>
+          <MyPDFButton event={event} activitiesInTable={activitiesInTable} ordersInTable={ordersInTable} cakesInTable={cakesInTable} extrasInTable={extrasInTable} 
+          total={{activityTotal: activityTotal,
+                orderTotal: Number((orderTotal * 1.11).toFixed(2)),
+                cakeTotal: cakeTotal,
+                extraTotal: extraTotal,
+                eventTotal: extraKidPrice + price,
+                paidAmount: paidAmount}}/>
         </div>
       </div>
       <div className="pt-4">
@@ -2063,7 +2140,7 @@ const ViewPage = ({ params }: Props) => {
         <div className="flex items-center justify-between">
           <p className="text-md text-light-300">Event Amount</p>
           {event ? (
-            <p className="text-md text-light-400">${extraKidPrice + minimumCharge + price}</p>
+            <p className="text-md text-light-400">${extraKidPrice + price}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
