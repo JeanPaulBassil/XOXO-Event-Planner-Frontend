@@ -1394,7 +1394,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: 600,
-    width: 130,
+    width: 150,
+    color: '#7F8C8D',
+  },
+  totalLabel: {
+    fontWeight: 600,
+    width: 325,
     color: '#7F8C8D',
   },
   value: {
@@ -1508,7 +1513,7 @@ const EventPDF = (props: PdfProps) => {
     </Page>
 
     {/* Third Page - Activities Table */}
-    <Page size="A4" style={styles.page}>
+    { props.activitiesInTable.length > 0 && <Page size="A4" style={styles.page}>
       <View style={styles.section}>
         <Text style={styles.subtitle}>Activities</Text>
         <View style={styles.tableHeader}>
@@ -1522,10 +1527,10 @@ const EventPDF = (props: PdfProps) => {
           </View>
         ))}
       </View>
-    </Page>
+    </Page> }
 
     {/* Fourth Page - Orders Table */}
-    <Page size="A4" style={styles.page}>
+    { props.ordersInTable.length > 0 && <Page size="A4" style={styles.page}>
       <View style={styles.section}>
         <Text style={styles.subtitle}>Orders</Text>
         <View style={styles.tableHeader}>
@@ -1543,10 +1548,10 @@ const EventPDF = (props: PdfProps) => {
           </View>
         ))}
       </View>
-    </Page>
+    </Page> }
 
     {/* Fifth Page - Cakes and Extras */}
-    <Page size="A4" style={styles.page}>
+    { props.cakesInTable.length > 0 && <Page size="A4" style={styles.page}>
       <View style={styles.section}>
         <Text style={styles.subtitle}>Cakes</Text>
         <View style={styles.tableHeader}>
@@ -1566,9 +1571,9 @@ const EventPDF = (props: PdfProps) => {
           </View>
         ))}
       </View>
-    </Page>
+    </Page> }
 
-    <Page size="A4" style={styles.page}>
+    { props.extrasInTable.length > 0 && <Page size="A4" style={styles.page}>
     <View style={styles.section}>
         <Text style={styles.subtitle}>Extras</Text>
         <View style={styles.tableHeader}>
@@ -1586,7 +1591,7 @@ const EventPDF = (props: PdfProps) => {
           </View>
         ))}
       </View>
-    </Page>
+    </Page> }
 
     {/* Final Page - Grand Total */}
     <Page size="A4" style={styles.page}>
@@ -1595,58 +1600,58 @@ const EventPDF = (props: PdfProps) => {
 
       <View style={styles.section}>
         {/* Activity Total */}
-        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Text style={styles.label}>Activities Total Price</Text>
+        { props.total.activityTotal > 0 && <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.totalLabel}>Activities Total Price:</Text>
           <Text style={styles.value}>
-            {props.total.activityTotal}
+            ${props.total.activityTotal}
           </Text>
-        </View>
+        </View> }
 
         {/* Orders Total */}
-        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Text style={styles.label}>Orders Total Price</Text>
+        { props.total.orderTotal > 0 && <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.totalLabel}>Orders Total Price:</Text>
           <Text style={styles.value}>
-            {props.total.orderTotal}
+            ${Number((props.total.orderTotal * 1.11).toFixed(2))}
           </Text>
-        </View>
+        </View> }
 
         {/* Cakes Total */}
-        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Text style={styles.label}>Cakes Total Price</Text>
+        { props.total.cakeTotal > 0 && <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.totalLabel}>Cakes Total Price:</Text>
           <Text style={styles.value}>
-            {props.total.cakeTotal}
+            ${props.total.cakeTotal}
           </Text>
-        </View>
+        </View> }
 
         {/* Decorations and Themes Total */}
-        <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Text style={styles.label}>Decorations and Themes Total Price</Text>
+        { props.total.extraTotal > 0 && <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+          <Text style={styles.totalLabel}>Decorations and Themes Total Price:</Text>
           <Text style={styles.value}>
-            {props.total.extraTotal}
+            ${props.total.extraTotal}
           </Text>
-        </View>
+        </View> }
 
         {/* Event Amount */}
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Text style={styles.label}>Event Amount</Text>
+          <Text style={styles.totalLabel}>Event Amount:</Text>
           <Text style={styles.value}>
-            {props.total.eventTotal}
+            ${props.total.eventTotal}
           </Text>
         </View>
 
         {/* Paid Amount */}
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Text style={styles.label}>Paid Amount</Text>
+          <Text style={styles.totalLabel}>Paid Amount:</Text>
           <Text style={styles.value}>
-            {props.total.paidAmount}
+            ${props.total.paidAmount}
           </Text>
         </View>
 
         {/* Grand Total */}
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-          <Text style={styles.label}>Grand Total</Text>
+          <Text style={styles.totalLabel}>Grand Total:</Text>
           <Text style={styles.value}>
-            {
+            ${
                 props.total.activityTotal +
                 Number((props.total.orderTotal * 1.11).toFixed(2)) +
                 props.total.cakeTotal +
