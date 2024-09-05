@@ -314,9 +314,8 @@ const editEventSchema = Joi.object({
     'number.min': 'Amount due cannot be negative',
     'any.required': 'Amount due is required',
   }),
-  minimumCharge: Joi.number().min(0).required().messages({
+  minimumCharge: Joi.number().min(0).optional().messages({
     'number.min': 'Amount due cannot be negative',
-    'any.required': 'Amount due is required',
   }),
   deposit: Joi.number().min(0).max(Joi.ref('price')).required().messages({
     'number.min': 'Deposit cannot be negative',
@@ -2841,7 +2840,6 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
               />
               <Input
                 type='number'
-                isRequired
                 variant='underlined'
                 label='Minimum Charge'
                 isClearable
