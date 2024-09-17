@@ -54,7 +54,7 @@ import { CakesApi } from '@/api/cake.api'
 import { Cake, CakeDescription } from '@/api/models/Cake.model'
 import { ExtrasApi } from '@/api/extra.api'
 import { Extra, ExtraType } from '@/api/models/Extra.model'
-import { PDFDownloadLink, Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 const INITIAL_VISIBLE_COLUMNS = ['description', 'price']
 
@@ -1440,6 +1440,11 @@ const styles = StyleSheet.create({
     borderTopColor: '#D5DBDB',
     paddingTop: 10,
   },
+  signatureText: {
+    fontSize: 10,
+    marginBottom: 5,
+  }
+  
 });
 
 const EventPDF = (props: PdfProps) => {
@@ -1457,7 +1462,9 @@ const EventPDF = (props: PdfProps) => {
   <Document>
     {/* First Page - Event Details */}
     <Page size="A4" style={styles.page}>
+      <Image src="/logo.png" style={{width: 50, height: 50}}/>
       <Text style={styles.title}>{props.event && props.event.title}</Text>
+      <Text style={{fontSize: 16, fontWeight: 'bold', marginBottom: 12, color: '#34495E', textAlign: 'center'}}>ONCE SIGNED AND APPROVED NO REFUND, NO REDEEM</Text>
       <View style={styles.section}>
         <Text style={styles.subtitle}>Client Information</Text>
         <View style={{ flexDirection: 'row', marginBottom: 10 }}>
@@ -1662,6 +1669,16 @@ const EventPDF = (props: PdfProps) => {
           </Text>
         </View>
       </View>
+
+      <View style={{ marginTop: 30 }}>
+    <Text style={{fontSize: 14, fontWeight: 'bold', marginBottom: 12, color: '#34495E'}}>
+      CLIENT SIGNATURE: ONCE SIGNED AND APPROVED NO REFUND, NO REDEEM
+    </Text>
+    <Text style={{fontSize: 14, fontWeight: 'bold', marginBottom: 50, color: '#34495E'}}>
+      I AGREE ON THE SELECTED ENTERTAINMENTS COST PLUS FOOD QUANTITY & COST CHOSEN BY ME:
+    </Text>
+    <Text style={{fontSize: 14, fontWeight: 'bold', marginBottom: 12, color: '#34495E'}}>DATE: ____/____/{new Date().getFullYear()}</Text>
+  </View>
     </Page>
   </Document>
 ) : (<Text>Failed to load</Text>)};
