@@ -2388,7 +2388,7 @@ export default function CreateEventPage() {
         <div className='flex items-center justify-between'>
           <p className='text-md text-light-300'>Orders Total Price</p>
           {orderTotal ? (
-            <p className='text-md text-light-400'>${(orderTotal * 1.11).toFixed(2)}</p>
+            <p className='text-md text-light-400'>${orderTotal}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
@@ -2438,7 +2438,7 @@ export default function CreateEventPage() {
         <div className="flex items-center justify-between">
           <p className="text-md text-light-300">Grand Total</p>
           {event ? (
-            <p className="text-md text-light-400">${(activityTotal + Number((orderTotal * 1.11).toFixed(2)) + cakeTotal + extraTotal + extraKidPrice + minimumCharge + price) - paidAmount}</p>
+            <p className="text-md text-light-400">${(activityTotal + orderTotal + cakeTotal + extraTotal + extraKidPrice + minimumCharge + price) - paidAmount}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
