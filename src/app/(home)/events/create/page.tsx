@@ -653,7 +653,7 @@ const OrderTable = (props: orderTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(44)
+  const [rowsPerPage, setRowsPerPage] = React.useState(47)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
