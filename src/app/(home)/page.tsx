@@ -2,7 +2,7 @@
 import { FC, useEffect, useState } from 'react'
 import { Calendar, dateFnsLocalizer, Navigate, View } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
-import enUS from 'date-fns/locale/en-US'
+import { enUS } from 'date-fns/locale/en-US'
 
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
