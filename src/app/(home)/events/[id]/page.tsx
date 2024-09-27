@@ -455,7 +455,7 @@ const OrderTable = (props: TableProps) => {
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(44)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -558,10 +558,10 @@ const OrderTable = (props: TableProps) => {
     }
   }, [page])
 
-  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(e.target.value))
-    setPage(1)
-  }, [])
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
 
   const onSearchChange = React.useCallback((value?: string) => {
     if (value) {
@@ -657,7 +657,7 @@ const OrderTable = (props: TableProps) => {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">Total {ordersInTable?.length} orders</span>
-          <label className="flex items-center text-small text-default-400">
+          {/* <label className="flex items-center text-small text-default-400">
             Rows per page:
             <select
               className="bg-transparent rounded-md text-small text-default-400 outline-none"
@@ -667,14 +667,14 @@ const OrderTable = (props: TableProps) => {
               <option value="10">10</option>
               <option value="15">15</option>
             </select>
-          </label>
+          </label> */}
         </div>
       </div>
     )
   }, [
     filterValue,
     visibleColumns,
-    onRowsPerPageChange,
+    // onRowsPerPageChange,
     ordersInTable?.length,
     onSearchChange,
     hasSearchFilter,
@@ -711,7 +711,7 @@ const OrderTable = (props: TableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
