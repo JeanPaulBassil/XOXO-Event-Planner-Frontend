@@ -277,9 +277,8 @@ const createEventSchema = Joi.object({
     'number.min': 'Amount due cannot be negative',
     'any.required': 'Amount due is required',
   }),
-  minimumCharge: Joi.number().min(0).required().messages({
+  minimumCharge: Joi.number().min(0).optional().messages({
     'number.min': 'Amount due cannot be negative',
-    'any.required': 'Amount due is required',
   }),
   deposit: Joi.number().min(0).required().custom((value, helpers) => {
     const { price, extraKidPrice } = helpers.state.ancestors[0];
@@ -2308,7 +2307,6 @@ export default function CreateEventPage() {
               />
               <Input
                 type='number'
-                isRequired
                 variant='underlined'
                 label='Minimum Charge'
                 isClearable
@@ -2418,7 +2416,7 @@ export default function CreateEventPage() {
         <div className="flex items-center justify-between">
           <p className="text-md text-light-300">Event Amount</p>
           {event ? (
-            <p className="text-md text-light-400">${extraKidPrice + minimumCharge + price}</p>
+            <p className="text-md text-light-400">${extraKidPrice + price}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
