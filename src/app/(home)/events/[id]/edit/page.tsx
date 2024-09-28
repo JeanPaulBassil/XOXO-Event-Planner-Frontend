@@ -361,7 +361,7 @@ const ActivityTable = (props: activityTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(4)
+  const [rowsPerPage, setRowsPerPage] = React.useState(17)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -414,17 +414,17 @@ const ActivityTable = (props: activityTableProps) => {
   
     useEffect(() => {
       props.update({newActivities, updatedActivities, deletedActivities})
-      const updateVisibleColumns = () => {
-        if (window.innerWidth <= 1024) {
-          setVisibleColumns(new Set(['description', 'price']))
-        } else {
-          setVisibleColumns(new Set(columns.map((c) => c.uid)))
-        }
-      }
+      // const updateVisibleColumns = () => {
+      //   if (window.innerWidth <= 1024) {
+      //     setVisibleColumns(new Set(['description', 'price']))
+      //   } else {
+      //     setVisibleColumns(new Set(columns.map((c) => c.uid)))
+      //   }
+      // }
   
-      updateVisibleColumns()
-      window.addEventListener('resize', updateVisibleColumns)
-      return () => window.removeEventListener('resize', updateVisibleColumns)
+      // updateVisibleColumns()
+      // window.addEventListener('resize', updateVisibleColumns)
+      // return () => window.removeEventListener('resize', updateVisibleColumns)
     }, [activitiesInTable])
 
     const addActivity = (activity: ActivityInTable) => {
@@ -791,10 +791,10 @@ const ActivityTable = (props: activityTableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -890,17 +890,17 @@ const OrderTable = (props: orderTableProps) => {
   useEffect(() => {
     props.update({ newOrders, updatedOrders, deletedOrders });
 
-    const updateVisibleColumns = () => {
-      if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['unit', 'unitPrice']));
-      } else {
-        setVisibleColumns(new Set(orderColumns.map((c) => c.uid)));
-      }
-    };
+    // const updateVisibleColumns = () => {
+    //   if (window.innerWidth <= 1024) {
+    //     setVisibleColumns(new Set(['unit', 'unitPrice']));
+    //   } else {
+    //     setVisibleColumns(new Set(orderColumns.map((c) => c.uid)));
+    //   }
+    // };
 
-    updateVisibleColumns();
-    window.addEventListener('resize', updateVisibleColumns);
-    return () => window.removeEventListener('resize', updateVisibleColumns);
+    // updateVisibleColumns();
+    // window.addEventListener('resize', updateVisibleColumns);
+    // return () => window.removeEventListener('resize', updateVisibleColumns);
   }, [ordersInTable]);
 
   const addOrder = (order: OrderInTable) => {
@@ -1254,10 +1254,10 @@ const OrderTable = (props: orderTableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1355,17 +1355,17 @@ const CakeTable = (props: cakeTableProps) => {
 
   useEffect(() => {
     props.update({newCakes, updatedCakes, deletedCakes})
-    const updateVisibleColumns = () => {
-      if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['type', 'price']))
-      } else {
-        setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
-      }
-    }
+    // const updateVisibleColumns = () => {
+    //   if (window.innerWidth <= 1024) {
+    //     setVisibleColumns(new Set(['type', 'price']))
+    //   } else {
+    //     setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
+    //   }
+    // }
 
-    updateVisibleColumns()
-    window.addEventListener('resize', updateVisibleColumns)
-    return () => window.removeEventListener('resize', updateVisibleColumns)
+    // updateVisibleColumns()
+    // window.addEventListener('resize', updateVisibleColumns)
+    // return () => window.removeEventListener('resize', updateVisibleColumns)
   }, [cakesInTable])
 
   const addCake =  (cake: CakeInTable) => {
@@ -1682,7 +1682,7 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
                 selectionMode="multiple"
                 onSelectionChange={setVisibleColumns}
               >
-                {columns.map((column) => (
+                {cakeColumns.map((column) => (
                   <DropdownItem key={column.uid} className="capitalize">
                     {toCapitalCase(column.name)}
                   </DropdownItem>
@@ -1749,10 +1749,10 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1795,7 +1795,7 @@ const ExtraTable = (props: extraTableProps) => {
   const[visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(4)
+  const [rowsPerPage, setRowsPerPage] = React.useState(11)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -1848,17 +1848,17 @@ const ExtraTable = (props: extraTableProps) => {
 
   useEffect(() => {
     props.update({newExtras, updatedExtras, deletedExtras})
-    const updateVisibleColumns = () => {
-      if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['description', 'unitPrice']))
-      } else {
-        setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
-      }
-    }
+    // const updateVisibleColumns = () => {
+    //   if (window.innerWidth <= 1024) {
+    //     setVisibleColumns(new Set(['description', 'unitPrice']))
+    //   } else {
+    //     setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
+    //   }
+    // }
 
-    updateVisibleColumns()
-    window.addEventListener('resize', updateVisibleColumns)
-    return () => window.removeEventListener('resize', updateVisibleColumns)
+    // updateVisibleColumns()
+    // window.addEventListener('resize', updateVisibleColumns)
+    // return () => window.removeEventListener('resize', updateVisibleColumns)
   }, [extrasInTable])
 
   const addExtra =  (extra: ExtraInTable) => {
@@ -2154,7 +2154,7 @@ const editExtra = (extraName: string, updatedExtra: Partial<ExtraInTable>) => {
                 selectionMode="multiple"
                 onSelectionChange={setVisibleColumns}
               >
-                {columns.map((column) => (
+                {extraColumns.map((column) => (
                   <DropdownItem key={column.uid} className="capitalize">
                     {toCapitalCase(column.name)}
                   </DropdownItem>
@@ -2221,10 +2221,10 @@ const editExtra = (extraName: string, updatedExtra: Partial<ExtraInTable>) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
