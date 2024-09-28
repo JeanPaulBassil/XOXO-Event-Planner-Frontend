@@ -361,19 +361,19 @@ const ActivityTable = (props: ActivityTableProps) => {
     props.update(activitiesToSend, totalPrice)
   }, [activitiesToSend])
 
-  useEffect(() => {
-    const updateVisibleColumns = () => {
-      if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['name', 'price']))
-      } else {
-        setVisibleColumns(new Set(columns.map((c) => c.uid)))
-      }
-    }
+  // useEffect(() => {
+  //   const updateVisibleColumns = () => {
+  //     if (window.innerWidth <= 1024) {
+  //       setVisibleColumns(new Set(['name', 'price']))
+  //     } else {
+  //       setVisibleColumns(new Set(columns.map((c) => c.uid)))
+  //     }
+  //   }
 
-    updateVisibleColumns()
-    window.addEventListener('resize', updateVisibleColumns)
-    return () => window.removeEventListener('resize', updateVisibleColumns)
-  }, [activitiesInTable])
+  //   updateVisibleColumns()
+  //   window.addEventListener('resize', updateVisibleColumns)
+  //   return () => window.removeEventListener('resize', updateVisibleColumns)
+  // }, [activitiesInTable])
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === 'all') return columns
@@ -610,7 +610,7 @@ const ActivityTable = (props: ActivityTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -685,19 +685,19 @@ const OrderTable = (props: orderTableProps) => {
     props.update(ordersToSend, totalPrice)
   }, [ordersToSend])
 
-  useEffect(() => {
-    const updateVisibleColumns = () => {
-      if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['unit', 'unitPrice']))
-      } else {
-        setVisibleColumns(new Set(orderColumns.map((c) => c.uid)))
-      }
-    }
+  // useEffect(() => {
+  //   const updateVisibleColumns = () => {
+  //     if (window.innerWidth <= 1024) {
+  //       setVisibleColumns(new Set(['unit', 'unitPrice']))
+  //     } else {
+  //       setVisibleColumns(new Set(orderColumns.map((c) => c.uid)))
+  //     }
+  //   }
 
-    updateVisibleColumns()
-    window.addEventListener('resize', updateVisibleColumns)
-    return () => window.removeEventListener('resize', updateVisibleColumns)
-  }, [ordersInTable])
+  //   updateVisibleColumns()
+  //   window.addEventListener('resize', updateVisibleColumns)
+  //   return () => window.removeEventListener('resize', updateVisibleColumns)
+  // }, [ordersInTable])
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === 'all') return orderColumns
@@ -1016,7 +1016,7 @@ const OrderTable = (props: orderTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1091,19 +1091,19 @@ const CakeTable = (props: cakeTableProps) => {
     props.update(cakesToSend, totalPrice)
   }, [cakesToSend])
 
-  useEffect(() => {
-    const updateVisibleColumns = () => {
-      if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['type', 'price']))
-      } else {
-        setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
-      }
-    }
+  // useEffect(() => {
+  //   const updateVisibleColumns = () => {
+  //     if (window.innerWidth <= 1024) {
+  //       setVisibleColumns(new Set(['type', 'price']))
+  //     } else {
+  //       setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
+  //     }
+  //   }
 
-    updateVisibleColumns()
-    window.addEventListener('resize', updateVisibleColumns)
-    return () => window.removeEventListener('resize', updateVisibleColumns)
-  }, [cakesInTable])
+  //   updateVisibleColumns()
+  //   window.addEventListener('resize', updateVisibleColumns)
+  //   return () => window.removeEventListener('resize', updateVisibleColumns)
+  // }, [cakesInTable])
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === 'all') return cakeColumns
@@ -1407,7 +1407,7 @@ const CakeTable = (props: cakeTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1481,19 +1481,19 @@ const ExtraTable = (props: extraTableProps) => {
     props.update(extrasToSend, totalPrice)
   }, [extrasToSend])
 
-  useEffect(() => {
-    const updateVisibleColumns = () => {
-      if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['description', 'unitPrice']))
-      } else {
-        setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
-      }
-    }
+  // useEffect(() => {
+  //   const updateVisibleColumns = () => {
+  //     if (window.innerWidth <= 1024) {
+  //       setVisibleColumns(new Set(['description', 'unitPrice']))
+  //     } else {
+  //       setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
+  //     }
+  //   }
 
-    updateVisibleColumns()
-    window.addEventListener('resize', updateVisibleColumns)
-    return () => window.removeEventListener('resize', updateVisibleColumns)
-  }, [extrasInTable])
+  //   updateVisibleColumns()
+  //   window.addEventListener('resize', updateVisibleColumns)
+  //   return () => window.removeEventListener('resize', updateVisibleColumns)
+  // }, [extrasInTable])
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === 'all') return extraColumns
@@ -1772,7 +1772,7 @@ const ExtraTable = (props: extraTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1806,7 +1806,7 @@ const ExtraTable = (props: extraTableProps) => {
 const Section = (props: SectionProps) => {
   const { title, description, form } = props
   return (
-    <div className="mt-10 flex w-full flex-col items-start justify-start p-3 md:p-8 md:py-16 lg:flex-row lg:items-center">
+    <div className="mt-10 flex w-full flex-col items-start justify-start p-3 md:py-16 lg:flex-row lg:items-center">
       <div className="flex w-full flex-col md:w-[350px]">
         <h3 className="text-secondary-950 text-base dark:text-secondary-50">{title}</h3>
         <p className="mt-0.5 text-wrap text-small text-light-300 md:w-[90%]">{description}</p>
