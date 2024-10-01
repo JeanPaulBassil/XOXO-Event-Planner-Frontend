@@ -170,7 +170,7 @@ const ActivityTable = (props: TableProps) => {
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(17)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'name',
     direction: 'ascending',
@@ -206,18 +206,18 @@ const ActivityTable = (props: TableProps) => {
       }
     }
 
-    const updateVisibleColumns = () => {
-      if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['name', 'price']))
-      } else {
-        setVisibleColumns(new Set(columns.map((c) => c.uid)))
-      }
-    }
+    // const updateVisibleColumns = () => {
+    //   if (window.innerWidth <= 1024) {
+    //     setVisibleColumns(new Set(['description', 'price']))
+    //   } else {
+    //     setVisibleColumns(new Set(columns.map((c) => c.uid)))
+    //   }
+    // }
 
-    updateVisibleColumns()
+    // updateVisibleColumns()
     filterActivities()
-    window.addEventListener('resize', updateVisibleColumns)
-    return () => window.removeEventListener('resize', updateVisibleColumns)
+    // window.addEventListener('resize', updateVisibleColumns)
+    // return () => window.removeEventListener('resize', updateVisibleColumns)
   }, [activities, props.params.id])
 
   const headerColumns = React.useMemo(() => {
@@ -273,10 +273,10 @@ const ActivityTable = (props: TableProps) => {
     }
   }, [page])
 
-  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(e.target.value))
-    setPage(1)
-  }, [])
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
 
   const onSearchChange = React.useCallback((value?: string) => {
     if (value) {
@@ -372,7 +372,7 @@ const ActivityTable = (props: TableProps) => {
           <span className="text-small text-default-400">
             Total {activitiesInTable?.length} activities
           </span>
-          <label className="flex items-center text-small text-default-400">
+          {/* <label className="flex items-center text-small text-default-400">
             Rows per page:
             <select
               className="bg-transparent rounded-md text-small text-default-400 outline-none"
@@ -382,14 +382,14 @@ const ActivityTable = (props: TableProps) => {
               <option value="10">10</option>
               <option value="15">15</option>
             </select>
-          </label>
+          </label> */}
         </div>
       </div>
     )
   }, [
     filterValue,
     visibleColumns,
-    onRowsPerPageChange,
+    // onRowsPerPageChange,
     activitiesInTable?.length,
     onSearchChange,
     hasSearchFilter,
@@ -426,7 +426,7 @@ const ActivityTable = (props: TableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
@@ -472,7 +472,7 @@ const OrderTable = (props: TableProps) => {
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_ORDERS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(47)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -510,7 +510,7 @@ const OrderTable = (props: TableProps) => {
 
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['name', 'unitPrice']))
+        setVisibleColumns(new Set(['description', 'quantity', 'total']))
       } else {
         setVisibleColumns(new Set(orderColumns.map((c) => c.uid)))
       }
@@ -575,10 +575,10 @@ const OrderTable = (props: TableProps) => {
     }
   }, [page])
 
-  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(e.target.value))
-    setPage(1)
-  }, [])
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
 
   const onSearchChange = React.useCallback((value?: string) => {
     if (value) {
@@ -663,7 +663,7 @@ const OrderTable = (props: TableProps) => {
                 selectionMode="multiple"
                 onSelectionChange={setVisibleColumns}
               >
-                {columns.map((column) => (
+                {orderColumns.map((column) => (
                   <DropdownItem key={column.uid} className="capitalize">
                     {toCapitalCase(column.name)}
                   </DropdownItem>
@@ -674,7 +674,7 @@ const OrderTable = (props: TableProps) => {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">Total {ordersInTable?.length} orders</span>
-          <label className="flex items-center text-small text-default-400">
+          {/* <label className="flex items-center text-small text-default-400">
             Rows per page:
             <select
               className="bg-transparent rounded-md text-small text-default-400 outline-none"
@@ -684,14 +684,14 @@ const OrderTable = (props: TableProps) => {
               <option value="10">10</option>
               <option value="15">15</option>
             </select>
-          </label>
+          </label> */}
         </div>
       </div>
     )
   }, [
     filterValue,
     visibleColumns,
-    onRowsPerPageChange,
+    // onRowsPerPageChange,
     ordersInTable?.length,
     onSearchChange,
     hasSearchFilter,
@@ -728,7 +728,7 @@ const OrderTable = (props: TableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
@@ -774,7 +774,7 @@ const CakeTable = (props: TableProps) => {
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_CAKES_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(3)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -812,7 +812,7 @@ const CakeTable = (props: TableProps) => {
 
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['type', 'price']))
+        setVisibleColumns(new Set(['description', 'type', 'quantity', 'total']))
       } else {
         setVisibleColumns(new Set(cakeColumns.map((c) => c.uid)))
       }
@@ -877,10 +877,10 @@ const CakeTable = (props: TableProps) => {
     }
   }, [page])
 
-  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(e.target.value))
-    setPage(1)
-  }, [])
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
 
   const onSearchChange = React.useCallback((value?: string) => {
     if (value) {
@@ -965,7 +965,7 @@ const CakeTable = (props: TableProps) => {
                 selectionMode="multiple"
                 onSelectionChange={setVisibleColumns}
               >
-                {columns.map((column) => (
+                {cakeColumns.map((column) => (
                   <DropdownItem key={column.uid} className="capitalize">
                     {toCapitalCase(column.name)}
                   </DropdownItem>
@@ -976,7 +976,7 @@ const CakeTable = (props: TableProps) => {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">Total {cakesInTable?.length} cakes</span>
-          <label className="flex items-center text-small text-default-400">
+          {/* <label className="flex items-center text-small text-default-400">
             Rows per page:
             <select
               className="bg-transparent rounded-md text-small text-default-400 outline-none"
@@ -986,14 +986,14 @@ const CakeTable = (props: TableProps) => {
               <option value="10">10</option>
               <option value="15">15</option>
             </select>
-          </label>
+          </label> */}
         </div>
       </div>
     )
   }, [
     filterValue,
     visibleColumns,
-    onRowsPerPageChange,
+    // onRowsPerPageChange,
     cakesInTable?.length,
     onSearchChange,
     hasSearchFilter,
@@ -1030,7 +1030,7 @@ const CakeTable = (props: TableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
@@ -1076,7 +1076,7 @@ const ExtraTable = (props: TableProps) => {
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_EXTRAS_VISIBLE_COLUMNS)
   )
-  const [rowsPerPage, setRowsPerPage] = React.useState(2)
+  const [rowsPerPage, setRowsPerPage] = React.useState(11)
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: 'description',
     direction: 'ascending',
@@ -1113,7 +1113,7 @@ const ExtraTable = (props: TableProps) => {
 
     const updateVisibleColumns = () => {
       if (window.innerWidth <= 1024) {
-        setVisibleColumns(new Set(['description', 'price']))
+        setVisibleColumns(new Set(['description', 'quantity', 'total']))
       } else {
         setVisibleColumns(new Set(extraColumns.map((c) => c.uid)))
       }
@@ -1178,10 +1178,10 @@ const ExtraTable = (props: TableProps) => {
     }
   }, [page])
 
-  const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(e.target.value))
-    setPage(1)
-  }, [])
+  // const onRowsPerPageChange = React.useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setRowsPerPage(Number(e.target.value))
+  //   setPage(1)
+  // }, [])
 
   const onSearchChange = React.useCallback((value?: string) => {
     if (value) {
@@ -1266,7 +1266,7 @@ const ExtraTable = (props: TableProps) => {
                 selectionMode="multiple"
                 onSelectionChange={setVisibleColumns}
               >
-                {columns.map((column) => (
+                {extraColumns.map((column) => (
                   <DropdownItem key={column.uid} className="capitalize">
                     {toCapitalCase(column.name)}
                   </DropdownItem>
@@ -1277,7 +1277,7 @@ const ExtraTable = (props: TableProps) => {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-default-400">Total {extrasInTable?.length} extras</span>
-          <label className="flex items-center text-small text-default-400">
+          {/* <label className="flex items-center text-small text-default-400">
             Rows per page:
             <select
               className="bg-transparent rounded-md text-small text-default-400 outline-none"
@@ -1287,7 +1287,7 @@ const ExtraTable = (props: TableProps) => {
               <option value="10">10</option>
               <option value="15">15</option>
             </select>
-          </label>
+          </label> */}
         </div>
       </div>
     )
@@ -1331,7 +1331,7 @@ const ExtraTable = (props: TableProps) => {
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
           isHeaderSticky
-          bottomContent={bottomContent}
+          // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
             wrapper: 'max-h-[382px] px-0 shadow-none py-0 rounded-none',
@@ -2132,7 +2132,7 @@ const ViewPage = ({ params }: Props) => {
         <div className="flex items-center justify-between">
           <p className="text-md text-light-300">Orders Total Price</p>
           {orderTotal ? (
-            <p className="text-md text-light-400">${(orderTotal * 1.11).toFixed(2)}</p>
+            <p className="text-md text-light-400">${orderTotal}</p>
           ) : (
             <Skeleton className="w-[25px] rounded-lg">
               <div className="h-3 w-3/5 rounded-lg bg-default-200"></div>
@@ -2185,7 +2185,7 @@ const ViewPage = ({ params }: Props) => {
             <p className="text-md text-light-400">
               $
               {activityTotal +
-                Number((orderTotal * 1.11).toFixed(2)) +
+                orderTotal +
                 cakeTotal +
                 extraTotal +
                 extraKidPrice +
