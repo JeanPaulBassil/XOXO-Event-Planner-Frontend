@@ -31,7 +31,7 @@ const config: Config = {
       xs: '320px',
       sm: '375px',
       md: '425px',
-      lg: '768px',
+      lg: '769px',
       xl: '1024px',
       '2xl': '1440px',
       '3xl': '2560px',
