@@ -1430,6 +1430,7 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
     paddingRight: 5,
     textAlign: 'center',
+    fontSize: 12
   },
   footer: {
     fontSize: 14,
