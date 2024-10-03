@@ -1593,17 +1593,11 @@ const EventPDF = (props: PdfProps) => {
           </View>
         ))}
       </View> )}
-     </Page>
-    
+      
 
-    
-
-    {/* Final Page - Grand Total */}
-    <Page size="A4" style={styles.page}>
-      {/* Title */}
+      <View style={styles.section} wrap={false}>
+        {/* Title */}
       <Text style={styles.subtitle}>Grand Total</Text>
-
-      <View style={styles.section}>
         {/* Activity Total */}
         { props.total.activityTotal > 0 && <View style={{ flexDirection: 'row', marginBottom: 10 }}>
           <Text style={styles.totalLabel}>Activities Total Price:</Text>
@@ -1668,7 +1662,7 @@ const EventPDF = (props: PdfProps) => {
         </View>
       </View>
 
-      <View style={{ marginTop: 30 }}>
+      <View style={{ marginTop: 30 }} wrap={false}>
     <Text style={{fontSize: 14, fontWeight: 'bold', marginBottom: 12, color: '#34495E'}}>
       CLIENT SIGNATURE: ONCE SIGNED AND APPROVED NO REFUND, NO REDEEM
     </Text>
@@ -1677,7 +1671,7 @@ const EventPDF = (props: PdfProps) => {
     </Text>
     <Text style={{fontSize: 14, fontWeight: 'bold', marginBottom: 12, color: '#34495E'}}>DATE: ____/____/{new Date().getFullYear()}</Text>
   </View>
-    </Page>
+     </Page>
   </Document>
 ) : (<Text>Failed to load</Text>)};
 
