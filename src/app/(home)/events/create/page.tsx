@@ -1182,7 +1182,7 @@ const CakeTable = (props: cakeTableProps) => {
       case 'description':
         return (
           <div>
-            <p className="text-bold">{cake.description}</p>
+            <p className="text-bold break-words max-w-[255px]">{cake.description}</p>
           </div>
         )
       case 'type':
