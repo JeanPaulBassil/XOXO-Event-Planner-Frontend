@@ -121,6 +121,7 @@ interface SectionProps {
   form: React.ReactNode
   title: string
   description: string
+  horizontalScroll: boolean
 }
 
 type ActivityInTable = {
@@ -609,7 +610,7 @@ const ActivityTable = (props: ActivityTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] w-[382px] md:w-full px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1007,7 +1008,7 @@ const OrderTable = (props: orderTableProps) => {
 
   return (
     <div>
-      <div className="z-0 w-full px-4 py-4 md:px-4">
+      <div className="z-0 w-full px-4 py-4 md:px-4 overflow-x-auto">
         <Table
           className="z-0"
           aria-label="Example table with custom cells, pagination and sorting"
@@ -1015,7 +1016,7 @@ const OrderTable = (props: orderTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] w-full px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1181,7 +1182,7 @@ const CakeTable = (props: cakeTableProps) => {
       case 'description':
         return (
           <div>
-            <p className="text-bold">{cake.description}</p>
+            <p className="text-bold break-words max-w-[255px]">{cake.description}</p>
           </div>
         )
       case 'type':
@@ -1406,7 +1407,7 @@ const CakeTable = (props: cakeTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] w-[382px] md:w-full px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1771,7 +1772,7 @@ const ExtraTable = (props: extraTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] w-[382px] md:w-full px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1803,14 +1804,16 @@ const ExtraTable = (props: extraTableProps) => {
 }
 
 const Section = (props: SectionProps) => {
-  const { title, description, form } = props
+  const { title, description, form, horizontalScroll } = props
   return (
     <div className="mt-10 flex w-full flex-col items-start justify-start p-3 md:py-16 lg:flex-row lg:items-center">
       <div className="flex w-full flex-col md:w-[350px]">
         <h3 className="text-secondary-950 text-base dark:text-secondary-50">{title}</h3>
         <p className="mt-0.5 text-wrap text-small text-light-300 md:w-[90%]">{description}</p>
       </div>
-      {form}
+      <div className={horizontalScroll ? "w-full overflow-x-auto" : undefined}>
+        {form}
+      </div>
     </div>
   )
 }
@@ -1954,6 +1957,7 @@ export default function CreateEventPage() {
       <Divider className="bg-light-200" />
       <form onSubmit={handleSubmit(onSubmit)} className="w-full">
         <Section
+          horizontalScroll={false}
           title="Client Information"
           description="Enter the client information"
           form={
@@ -2050,6 +2054,7 @@ export default function CreateEventPage() {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
+          horizontalScroll={false}
           title="Event Information"
           description="Enter the event information"
           form={
@@ -2200,6 +2205,7 @@ export default function CreateEventPage() {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
+          horizontalScroll={false}
           title="Event Duration"
           description="Enter the event duration"
           form={
@@ -2275,6 +2281,7 @@ export default function CreateEventPage() {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
+          horizontalScroll={false}
           title="Payment Information"
           description="Enter the payment information"
           form={
@@ -2344,6 +2351,7 @@ export default function CreateEventPage() {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section 
+          horizontalScroll={true}
           title='Activity Information' 
           description='Enter the event activities'
           form={<ActivityTable update={update}/>}
@@ -2351,6 +2359,7 @@ export default function CreateEventPage() {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section 
+          horizontalScroll={true}
           title='Order Information' 
           description='Enter the event orders'
           form={<OrderTable update={updateOrders}/>}
@@ -2358,6 +2367,7 @@ export default function CreateEventPage() {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section 
+          horizontalScroll={true}
           title='Cake Information' 
           description='Enter the event cakes'
           form={<CakeTable update={updateCakes}/>}
@@ -2365,6 +2375,7 @@ export default function CreateEventPage() {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section 
+          horizontalScroll={true}
           title='Extra Decorations and Themes Information' 
           description='Enter the event extras'
           form={<ExtraTable update={updateExtras}/>}

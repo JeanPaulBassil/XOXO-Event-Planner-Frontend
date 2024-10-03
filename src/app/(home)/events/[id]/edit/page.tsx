@@ -234,6 +234,7 @@ interface SectionProps {
   form: React.ReactNode
   title: string
   description: string
+  horizontalScroll: boolean
 }
 
 const activitySchema = Joi.object({
@@ -793,7 +794,7 @@ const ActivityTable = (props: activityTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] w-full px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1256,7 +1257,7 @@ const OrderTable = (props: orderTableProps) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] w-full px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -1517,7 +1518,7 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
       case 'description':
         return (
           <div>
-            <p className="text-bold">{cake.description}</p>
+            <p className="text-bold break-words max-w-[255px]">{cake.description}</p>
           </div>
         );
         case 'type':
@@ -1751,7 +1752,7 @@ const editCake = (cakeName: string, updatedCake: Partial<CakeInTable>) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] w-full px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -2223,7 +2224,7 @@ const editExtra = (extraName: string, updatedExtra: Partial<ExtraInTable>) => {
           // bottomContent={bottomContent}
           bottomContentPlacement="outside"
           classNames={{
-            wrapper: 'max-h-[382px] max-w-[382px] px-0 shadow-none py-0 rounded-none',
+            wrapper: 'max-h-[382px] w-full px-0 shadow-none py-0 rounded-none',
           }}
           sortDescriptor={sortDescriptor}
           topContent={topContent}
@@ -2255,7 +2256,7 @@ const editExtra = (extraName: string, updatedExtra: Partial<ExtraInTable>) => {
 }
 
 const Section = (props: SectionProps) => {
-  const { title, description, form } = props
+  const { title, description, form, horizontalScroll } = props
   return (
     <div
       className={`mt-10 flex w-full flex-col items-start justify-start p-3 md:p-8 md:py-16 lg:flex-row lg:items-center`}
@@ -2266,7 +2267,9 @@ const Section = (props: SectionProps) => {
         <p className="mt-0.5 text-wrap text-small text-light-300 md:w-[90%]">{description}</p>
       </div>
       {/* Right Part */}
-      {form}
+      <div className={horizontalScroll ? "w-full overflow-x-auto" : undefined}>
+        {form}
+      </div>
     </div>
   )
 }
@@ -2484,6 +2487,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
       <Divider className="bg-light-200" />
       <form onSubmit={handleSubmit(onSubmit)} className="w-full">
         <Section
+          horizontalScroll={false}
           title="Client Information"
           description="Enter the client information"
           form={
@@ -2578,6 +2582,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
+          horizontalScroll={false}
           title="Event Information"
           description="Enter the event information"
           form={
@@ -2733,6 +2738,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
+          horizontalScroll={false}
           title="Event Duration"
           description="Enter the event duration"
           form={
@@ -2810,6 +2816,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
+          horizontalScroll={false}
           title="Payment Information"
           description="Enter the payment information"
           form={
@@ -2875,6 +2882,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section
+          horizontalScroll={true}
           title='Activity Information'
           description='Enter the activity information'
           form={<ActivityTable update={update} id={Number(params.id)}/>}
@@ -2882,6 +2890,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
           <Spacer y={2} />
           <Divider className="bg-light-200" />
           <Section 
+            horizontalScroll={true}
           title='Order Information' 
           description='Enter the event orders'
           form={<OrderTable update={updateOrder} id={Number(params.id)}/>}
@@ -2889,6 +2898,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section 
+          horizontalScroll={true}
           title='Cake Information' 
           description='Enter the event cakes'
           form={<CakeTable update={updateCake} id={Number(params.id)}/>}
@@ -2896,6 +2906,7 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         <Spacer y={2} />
         <Divider className="bg-light-200" />
         <Section 
+          horizontalScroll={true}
           title='Extra Decorations and Themes Information' 
           description='Enter the event extras'
           form={<ExtraTable update={updateExtra} id={Number(params.id)}/>}

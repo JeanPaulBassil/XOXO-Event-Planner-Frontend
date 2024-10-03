@@ -1430,6 +1430,7 @@ const styles = StyleSheet.create({
     color: '#2C3E50',
     paddingRight: 5,
     textAlign: 'center',
+    fontSize: 12
   },
   footer: {
     fontSize: 14,
@@ -1520,48 +1521,44 @@ const EventPDF = (props: PdfProps) => {
     </Page>
 
     {/* Third Page - Activities Table */}
-    { props.activitiesInTable.length > 0 && <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
+    <Page size="A4" style={styles.page}>
+    { props.activitiesInTable.length > 0 && (
+      <View style={styles.section} wrap={false}>
         <Text style={styles.subtitle}>Activities</Text>
-        <View style={styles.tableHeader}>
+        <View style={styles.tableHeader} wrap={false}>
           <Text style={styles.tableCell}>Description</Text>
           <Text style={styles.tableCell}>Price</Text>
         </View>
         {props.activitiesInTable.map((activity, index) => (
-          <View key={index} style={styles.tableRow}>
+          <View key={index} style={styles.tableRow} wrap={false}>
             <Text style={styles.tableCell}>{convertString(activity.description)}</Text>
             <Text style={styles.tableCell}>${activity.price}</Text>
           </View>
         ))}
       </View>
-    </Page> }
-
-    {/* Fourth Page - Orders Table */}
-    { props.ordersInTable.length > 0 && <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
+     )}
+     { props.ordersInTable.length > 0 && (
+      <View style={styles.section} wrap={false}>
         <Text style={styles.subtitle}>Orders</Text>
-        <View style={styles.tableHeader}>
+        <View style={styles.tableHeader} wrap={false}>
           <Text style={styles.tableCell}>Description</Text>
           <Text style={styles.tableCell}>Unit Price</Text>
           <Text style={styles.tableCell}>Quantity</Text>
           <Text style={styles.tableCell}>Total</Text>
         </View>
         {props.ordersInTable.map((order, index) => (
-          <View key={index} style={styles.tableRow}>
+          <View key={index} style={styles.tableRow} wrap={false}>
             <Text style={styles.tableCell}>{convertString(order.description)}</Text>
             <Text style={styles.tableCell}>${order.unitPrice}</Text>
             <Text style={styles.tableCell}>{order.quantity}</Text>
             <Text style={styles.tableCell}>${order.total}</Text>
           </View>
         ))}
-      </View>
-    </Page> }
-
-    {/* Fifth Page - Cakes and Extras */}
-    { props.cakesInTable.length > 0 && <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
+      </View> )}
+      { props.cakesInTable.length > 0 && (
+      <View style={styles.section} wrap={false}>
         <Text style={styles.subtitle}>Cakes</Text>
-        <View style={styles.tableHeader}>
+        <View style={styles.tableHeader} wrap={false}>
           <Text style={styles.tableCell}>Type</Text>
           <Text style={styles.tableCell}>Description</Text>
           <Text style={styles.tableCell}>Unit Price</Text>
@@ -1569,7 +1566,7 @@ const EventPDF = (props: PdfProps) => {
           <Text style={styles.tableCell}>Total</Text>
         </View>
         {props.cakesInTable.map((cake, index) => (
-          <View key={index} style={styles.tableRow}>
+          <View key={index} style={styles.tableRow} wrap={false}>
             <Text style={styles.tableCell}>{cake.type}</Text>
             <Text style={styles.tableCell}>{convertString(cake.description)}</Text>
             <Text style={styles.tableCell}>${cake.unitPrice}</Text>
@@ -1577,28 +1574,29 @@ const EventPDF = (props: PdfProps) => {
             <Text style={styles.tableCell}>${cake.total}</Text>
           </View>
         ))}
-      </View>
-    </Page> }
-
-    { props.extrasInTable.length > 0 && <Page size="A4" style={styles.page}>
-    <View style={styles.section}>
+      </View> )}
+      { props.extrasInTable.length > 0 && (
+    <View style={styles.section} wrap={false}>
         <Text style={styles.subtitle}>Extras</Text>
-        <View style={styles.tableHeader}>
+        <View style={styles.tableHeader} wrap={false}>
           <Text style={styles.tableCell}>Description</Text>
           <Text style={styles.tableCell}>Quantity</Text>
           <Text style={styles.tableCell}>Unit Price</Text>
           <Text style={styles.tableCell}>Total</Text>
         </View>
         {props.extrasInTable.map((extra, index) => (
-          <View key={index} style={styles.tableRow}>
+          <View key={index} style={styles.tableRow} wrap={false}>
             <Text style={styles.tableCell}>{convertString(extra.description)}</Text>
             <Text style={styles.tableCell}>{extra.quantity}</Text>
             <Text style={styles.tableCell}>${extra.unitPrice}</Text>
             <Text style={styles.tableCell}>${extra.total}</Text>
           </View>
         ))}
-      </View>
-    </Page> }
+      </View> )}
+     </Page>
+    
+
+    
 
     {/* Final Page - Grand Total */}
     <Page size="A4" style={styles.page}>
