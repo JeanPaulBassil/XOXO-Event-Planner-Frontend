@@ -82,6 +82,7 @@ const page = () => {
 
   const onSubmit = async (data: FormData) => {
     if (!isDirty) {
+      console.log('No Changes Detected.')
       toast.error('No Changes Detected.')
       return
     }
